@@ -1,0 +1,6 @@
+train: '../Data/Processed/Stage 1 (Disease Detection)/train/images'
+val: '../Data/Processed/Stage 1 (Disease Detection)/val/images'
+test: '../Data/Processed/Stage 1 (Disease Detection)/test/images'
+
+nc: 4
+names: ["impacted","caries","periapical","deep_caries"]
