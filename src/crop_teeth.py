@@ -1,19 +1,9 @@
 from tqdm import tqdm
 import os
 import cv2
-import yaml
 
-# Stage 2
-s2_train_path = r'..\Data\Processed\Stage 2 (Disease Classifier)\train'
-s2_val_path = r'..\Data\Processed\Stage 2 (Disease Classifier)\val'
-s2_test_path = r'..\Data\Processed\Stage 2 (Disease Classifier)\test'
-
-with open(r'../Data/Processed/Stage 1 (Disease Detection)/data.yaml') as f:
-    yolo_file = yaml.safe_load(f)
-
-
-def export_cropped_images(images_path, only_org:bool=False):
-    for fname in tqdm(os.listdir(images_path),desc=f'Cropping images now...'):
+def export_cropped_images(yolo_images_path:str, output_root:str, only_org:bool=False):
+    for fname in tqdm(os.listdir(yolo_images_path),desc=f'Cropping images now...'):
         
         if only_org:
             if 'aug' not in fname:
@@ -23,8 +13,8 @@ def export_cropped_images(images_path, only_org:bool=False):
         else:
             filename_no_ext = fname.split('.')[0]
 
-        img_path = os.path.join(images_path, filename_no_ext + ".png")
-        label_path = os.path.join(images_path.replace('images','labels'), filename_no_ext + ".txt")
+        img_path = os.path.join(yolo_images_path, filename_no_ext + ".png")
+        label_path = os.path.join(yolo_images_path.replace('images','labels'), filename_no_ext + ".txt")
 
         img = cv2.imread(img_path)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -46,11 +36,14 @@ def export_cropped_images(images_path, only_org:bool=False):
 
                 cropped_img = img[y_pixel:y_end,x_pixel:x_end]
 
-                fol_class = [fol for fol in os.listdir(s2_train_path) if cls_id in fol][0]
+                try:
+                    fol_class = [fol for fol in os.listdir(os.path.join(output_root,'train')) if cls_id in fol][0]
+                except:
+                    raise FileNotFoundError(f'Classes Folders Are Not Found! Should be the classes folders in each train, valid, and test folders in the output_root path contains: (class_id)_(disease_name)\nEx: 0_Caries,1_Deep_Caries,....')
 
-                if 'train' in images_path:
-                    cv2.imwrite(os.path.join(s2_train_path,fol_class, f"{filename_no_ext}_cropped.png"), cropped_img)
-                elif 'val' in images_path:
-                    cv2.imwrite(os.path.join(s2_val_path,fol_class, f"{filename_no_ext}_cropped.png"), cropped_img)
+                if 'train' in yolo_images_path:
+                    cv2.imwrite(os.path.join(output_root,'train',fol_class, f"{filename_no_ext}_cropped.png"), cropped_img)
+                elif 'valid' in yolo_images_path:
+                    cv2.imwrite(os.path.join(output_root,'valid',fol_class, f"{filename_no_ext}_cropped.png"), cropped_img)
                 else:
-                    cv2.imwrite(os.path.join(s2_test_path,fol_class, f"{filename_no_ext}_cropped.png"), cropped_img)
+                    cv2.imwrite(os.path.join(output_root,'test',fol_class, f"{filename_no_ext}_cropped.png"), cropped_img)
