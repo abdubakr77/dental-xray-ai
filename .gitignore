@@ -223,8 +223,8 @@ Data/Raw/
 # Dataset (Processed)
 Data/Processed/Stage 1 (Disease Detection)/test
 Data/Processed/Stage 1 (Disease Detection)/train
-Data/Processed/Stage 1 (Disease Detection)/val
+Data/Processed/Stage 1 (Disease Detection)/valid
 
 Data/Processed/Stage 2 (Disease Classifier)/test
 Data/Processed/Stage 2 (Disease Classifier)/train
-Data/Processed/Stage 2 (Disease Classifier)/val
+Data/Processed/Stage 2 (Disease Classifier)/valid
