@@ -1,5 +1,19 @@
 import pandas as pd
 
+diagnosis_map = {
+    0: "impacted",
+    1: "caries",
+    2: "periapical",
+    3: "deep_caries"
+}
+
+quad_map = {
+    0: "Upper Right",
+    1: "Upper Left",
+    2: "Lower Left",
+    3: "Lower Right"
+}
+
 def create_diseases_df(disease_json_file,diagnosis_map, quad_map=None, segmentation= False, enumeration=False):
 
     f_name = []
@@ -86,5 +100,41 @@ def create_enum_df(enum_json_file, quad_map=None, segmentation= False):
         data['Seg'] = seg
     if quad_map:
         data['Quad'] = quad
+
+    return pd.DataFrame(data)
+
+
+def create_enum_df(quad_json_file, quad_map=quad_map, segmentation= False):
+
+    f_name = []
+    bbox = []
+    img_h = []
+    img_w = []
+    quad = []
+
+    if segmentation:
+        seg = []
+
+    for item in quad_json_file['images']:
+        for ann in quad_json_file['annotations']:
+            if int(ann['image_id']) == int(item['id']):
+                f_name.append(item['file_name'])
+                bbox.append(ann['bbox'])
+                img_h.append(item['height'])
+                img_w.append(item['width'])
+                quad.append(quad_map[ann['category_id_1']])
+                if segmentation:
+                    seg.extend(ann['segmentation'])
+
+    data = {
+        'File_Name': f_name,
+        'Bbox': bbox,
+        'Height': img_h,
+        'Width': img_w,
+        'Quad': quad
+    }
+
+    if segmentation:
+        data['Seg'] = seg
 
     return pd.DataFrame(data)
