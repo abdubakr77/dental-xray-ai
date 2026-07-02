@@ -24,7 +24,7 @@ def create_diseases_df(disease_json_file,diagnosis_map, quad_map=None, segmentat
                 img_w.append(item['width'])
                 disease.append(diagnosis_map[int(ann['category_id_3'])])
                 if diagnosis_map:
-                    quad.append(diagnosis_map[ann['category_id_1']])
+                    quad.append(quad_map[ann['category_id_1']])
                 if segmentation:
                     seg.extend(ann['segmentation'])
                 if enumeration:
