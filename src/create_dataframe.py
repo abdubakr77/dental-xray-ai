@@ -38,9 +38,9 @@ def create_diseases_df(disease_json_file,diagnosis_map, quad_map=None, segmentat
         'Disease_Name': disease
     }
 
-    if quad_map:
-        data['Seg'] = seg
     if segmentation:
+        data['Seg'] = seg
+    if quad_map:
         data['Quad'] = quad
     if enumeration:
         data['Tooth_Num'] = tooth_num
@@ -48,7 +48,7 @@ def create_diseases_df(disease_json_file,diagnosis_map, quad_map=None, segmentat
     return pd.DataFrame(data)
 
 
-def create_enum_df(enum_json_file, quadrant_dict=None, segmentation= False):
+def create_enum_df(enum_json_file, quad_map=None, segmentation= False):
 
     f_name = []
     bbox = []
@@ -56,7 +56,7 @@ def create_enum_df(enum_json_file, quadrant_dict=None, segmentation= False):
     img_w = []
     tooth_num = []
 
-    if quadrant_dict:
+    if quad_map:
         quad = []
     if segmentation:
         seg = []
@@ -69,8 +69,8 @@ def create_enum_df(enum_json_file, quadrant_dict=None, segmentation= False):
                 img_h.append(item['height'])
                 img_w.append(item['width'])
                 tooth_num.append(ann['category_id_2'])
-                if quadrant_dict:
-                    quad.append(quadrant_dict[ann['category_id_1']])
+                if quad_map:
+                    quad.append(quad_map[ann['category_id_1']])
                 if segmentation:
                     seg.extend(ann['segmentation'])
 
@@ -82,9 +82,9 @@ def create_enum_df(enum_json_file, quadrant_dict=None, segmentation= False):
         'Enumeration': tooth_num,
     }
 
-    if quadrant_dict:
-        data['Seg'] = seg
     if segmentation:
+        data['Seg'] = seg
+    if quad_map:
         data['Quad'] = quad
 
     return pd.DataFrame(data)
