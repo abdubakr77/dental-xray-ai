@@ -1,6 +1,6 @@
 import pandas as pd
 
-def create_dentex_df(coco_json_file,diseases_dict, quadrant_dict=None, segmentation= False, enumeration=False):
+def create_diseases_df(disease_json_file,diagnosis_map, quad_map=None, segmentation= False, enumeration=False):
 
     f_name = []
     bbox = []
@@ -8,23 +8,23 @@ def create_dentex_df(coco_json_file,diseases_dict, quadrant_dict=None, segmentat
     img_w = []
     disease = []
 
-    if quadrant_dict:
+    if quad_map:
         quad = []
     if segmentation:
         seg = []
     if enumeration:
         tooth_num = []
 
-    for item in coco_json_file['images']:
-        for ann in coco_json_file['annotations']:
+    for item in disease_json_file['images']:
+        for ann in disease_json_file['annotations']:
             if int(ann['image_id']) == int(item['id']):
                 f_name.append(item['file_name'])
                 bbox.append(ann['bbox'])
                 img_h.append(item['height'])
                 img_w.append(item['width'])
-                disease.append(diseases_dict[int(ann['category_id_3'])])
-                if quadrant_dict:
-                    quad.append(quadrant_dict[ann['category_id_1']])
+                disease.append(diagnosis_map[int(ann['category_id_3'])])
+                if diagnosis_map:
+                    quad.append(diagnosis_map[ann['category_id_1']])
                 if segmentation:
                     seg.extend(ann['segmentation'])
                 if enumeration:
@@ -38,7 +38,7 @@ def create_dentex_df(coco_json_file,diseases_dict, quadrant_dict=None, segmentat
         'Disease_Name': disease
     }
 
-    if quadrant_dict:
+    if quad_map:
         data['Seg'] = seg
     if segmentation:
         data['Quad'] = quad
