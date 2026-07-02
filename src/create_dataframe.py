@@ -43,7 +43,7 @@ def create_diseases_df(disease_json_file,diagnosis_map, quad_map=None, segmentat
     if quad_map:
         data['Quad'] = quad
     if enumeration:
-        data['Tooth_Num'] = tooth_num
+        data['Enumeration'] = tooth_num
 
     return pd.DataFrame(data)
 
