@@ -104,7 +104,7 @@ def create_enum_df(enum_json_file, quad_map=None, segmentation= False):
     return pd.DataFrame(data)
 
 
-def create_enum_df(quad_json_file, quad_map=quad_map, segmentation= False):
+def create_quad_df(quad_json_file, quad_map=quad_map, segmentation= False):
 
     f_name = []
     bbox = []
