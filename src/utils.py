@@ -1,3 +1,5 @@
+import pandas as pd
+
 def compute_iou(box1, box2):
     # Must boxes format are: [x, y, w, h]
     x1, y1, w1, h1 = box1
@@ -19,3 +21,28 @@ def compute_iou(box1, box2):
     if union == 0:
         return 0
     return intersection / union
+
+def find_duplicate_boxes(df, iou_threshold=0.9):
+    duplicates = []
+    
+    for fname in df['File_Name'].unique():
+        rows = df[df['File_Name'] == fname].reset_index()
+        n = len(rows)
+        
+        for i in range(n):
+            for j in range(i+1, n):
+                box1 = rows.iloc[i]['Bbox']
+                box2 = rows.iloc[j]['Bbox']
+                iou = compute_iou(box1, box2)
+                
+                if iou >= iou_threshold:
+                    duplicates.append({
+                        'File_Name': fname,
+                        'index_1': rows.iloc[i]['index'],
+                        'index_2': rows.iloc[j]['index'],
+                        'iou': iou
+                    })
+                    
+    print(f"Number of duplicate Boxes: {len(duplicates)}")
+    
+    return pd.DataFrame(duplicates)
