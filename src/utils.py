@@ -34,15 +34,17 @@ def find_duplicate_boxes(df, iou_threshold=0.9):
                 box1 = rows.iloc[i]['Bbox']
                 box2 = rows.iloc[j]['Bbox']
                 iou = compute_iou(box1, box2)
-                
+                diseases_text = f'{rows.iloc[i]['Disease_Name']} {rows.iloc[j]['Disease_Name']}'
+                sorted_diseases_text = sorted(diseases_text.split())
                 if iou >= iou_threshold:
                     duplicates.append({
-                        'File_Name': fname,
+                        'fname': fname,
                         'index_1': rows.iloc[i]['index'],
                         'index_2': rows.iloc[j]['index'],
-                        'iou': iou
+                        'iou': iou,
+                        'diseases': f'{sorted_diseases_text[0]} & {sorted_diseases_text[1]}',
                     })
-                    
+
     print(f"Number of duplicate Boxes: {len(duplicates)}")
     
     return pd.DataFrame(duplicates)
