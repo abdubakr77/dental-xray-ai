@@ -122,7 +122,12 @@ def create_quad_df(quad_json_file, quad_map=quad_map, segmentation= False):
                 bbox.append(ann['bbox'])
                 img_h.append(item['height'])
                 img_w.append(item['width'])
-                quad.append(quad_map[ann['category_id']])
+                if ann['category_id'] == 0:
+                    quad.append(quad_map[1])
+                elif ann['category_id'] == 1:
+                    quad.append(quad_map[0])
+                else:
+                    quad.append(quad_map[ann['category_id']])
                 if segmentation:
                     seg.extend(ann['segmentation'])
 
