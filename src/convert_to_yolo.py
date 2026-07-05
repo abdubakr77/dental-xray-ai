@@ -4,7 +4,7 @@ from time import sleep
 from tqdm import tqdm
 
 
-def export_yolo_dataset(diagnosis_map:dict, images_path:str ,output_root: str, train_df, valid_df=None, test_df=None):
+def export_yolo_dataset(y:str, images_path:str ,output_root: str, train_df, valid_df=None, test_df=None):
     print("WARNING: Please Check all txt files in labels folder are cleared because this function is recommended to run it only once.\nYou Have 5 seconds from now if you need to stop the code!")
     sleep(5)
     # clear_output(wait=True)
@@ -35,7 +35,12 @@ def export_yolo_dataset(diagnosis_map:dict, images_path:str ,output_root: str, t
             # print("Back to pixels:", x_back, y_back, w_back, h_back)
             # print("Original was:  ", x, y, w, h)
 
-            cls_id = list(diagnosis_map.values()).index(df.iloc[idx]['Disease_Name'])
+            if y == 'Disease_Name':
+                cls_id = ["impacted", "caries", "periapical","deep_caries"].index(df.iloc[idx][y])
+            elif y == 'Enumeration':
+                cls_id = df.iloc[idx][y]
+            else:
+                cls_id = ["Upper Right", "Upper Left","Lower Left","Lower Right"].index(df.iloc[idx][y])
 
             if name in 'train' in name: path = os.path.join(output_root,'train','labels',file_name.replace('png','txt'))
             elif'valid' in name: path = os.path.join(output_root,'valid','labels',file_name.replace('png','txt'))
