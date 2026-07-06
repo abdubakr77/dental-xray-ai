@@ -112,6 +112,7 @@ def multilabel_train_val_test_split(df,y,test_size=0.2,apply_check = False):
     test_df = df[df["File_Name"].isin(test_images["File_Name"])].reset_index(drop=True)
 
     if apply_check:
+        print()
 
         print("Train Images :", train_images.shape[0])
         print("Val Images   :", val_images.shape[0])
@@ -122,6 +123,8 @@ def multilabel_train_val_test_split(df,y,test_size=0.2,apply_check = False):
         print("Train Rows :", len(train_df))
         print("Val Rows   :", len(val_df))
         print("Test Rows  :", len(test_df))
+
+        print()
 
         train_files = set(train_df["File_Name"])
         val_files = set(val_df["File_Name"])
@@ -195,3 +198,19 @@ def export_yolo_dataset(target_col:str, images_path:str ,output_root: str, train
                 # break 
 
         print("Done!")
+
+
+def crop_image(image,x1,y1,x2,y2):
+    img_h, img_w = image.shape[:2]
+
+    x_pixel = int((x1 - x2 / 2) * img_w)
+    y_pixel = int((y1 - y2 / 2) * img_h)
+    w_pixel = int(x2 * img_w)
+    h_pixel = int(y2 * img_h)
+
+    x_end = x_pixel + w_pixel
+    y_end = y_pixel + h_pixel
+
+    cropped_img = image[y_pixel:y_end,x_pixel:x_end]
+
+    return cropped_img
