@@ -137,7 +137,7 @@ def multilabel_train_val_test_split(df,y,test_size=0.2,apply_check = False):
 
 
 
-def export_yolo_dataset(y:str, images_path:str ,output_root: str, train_df, valid_df=None, test_df=None):
+def export_yolo_dataset(target_col:str, images_path:str ,output_root: str, train_df, valid_df=None, test_df=None):
     print("WARNING: Please Check all txt files in labels folder are cleared because this function is recommended to run it only once.\nYou Have 5 seconds from now if you need to stop the code!")
     sleep(5)
     # clear_output(wait=True)
@@ -148,44 +148,50 @@ def export_yolo_dataset(y:str, images_path:str ,output_root: str, train_df, vali
     
 
     for name,df in ds_partitions.items():
-        for idx in tqdm(range(len(df)),f'{name} Is Processing Now...'):
-            file_name = df.iloc[idx]['File_Name']
-            x, y, w, h = df.iloc[idx]['Bbox']
-            img_h = df.iloc[idx]['Height']
-            img_w = df.iloc[idx]['Width']
+        for fname in tqdm(df['File_Name'].unique().tolist(),f'{name} Is Processing Now...'):
 
-            x1 = (x + w / 2) / img_w
-            y1 = (y + h / 2) / img_h
-            x2 = w / img_w
-            y2 = h / img_h
+            filtered_df = df[df['File_Name'] == fname]
 
-            # x_back = (x1 - x2 / 2) * img_w
-            # y_back = (y1 - y2 / 2) * img_h
-            # w_back = x2 * img_w
-            # h_back = y2 * img_h
+            for idx in range(len(filtered_df)):
 
-            # print("Normalized:", x1, y1, x2, y2)
-            # print("Back to pixels:", x_back, y_back, w_back, h_back)
-            # print("Original was:  ", x, y, w, h)
+                x, y, w, h = filtered_df.iloc[idx]['Bbox']
+                img_h = filtered_df.iloc[idx]['Height']
+                img_w = filtered_df.iloc[idx]['Width']
 
-            if y == 'Disease_Name':
-                cls_id = ["impacted", "caries", "periapical","deep_caries"].index(df.iloc[idx][y])
-            elif y == 'Enumeration':
-                cls_id = df.iloc[idx][y]
-            else:
-                cls_id = ["Upper Right", "Upper Left","Lower Left","Lower Right"].index(df.iloc[idx][y])
+                x1 = (x + w / 2) / img_w
+                y1 = (y + h / 2) / img_h
+                x2 = w / img_w
+                y2 = h / img_h
 
-            if name in 'train' in name: path = os.path.join(output_root,'train','labels',file_name.replace('png','txt'))
-            elif'valid' in name: path = os.path.join(output_root,'valid','labels',file_name.replace('png','txt'))
-            else : path = os.path.join(output_root,'test','labels',file_name.replace('png','txt'))
+                # x_back = (x1 - x2 / 2) * img_w
+                # y_back = (y1 - y2 / 2) * img_h
+                # w_back = x2 * img_w
+                # h_back = y2 * img_h
 
-            if os.path.exists(path):
+                # print("Normalized:", x1, y1, x2, y2)
+                # print("Back to pixels:", x_back, y_back, w_back, h_back)
+                # print("Original was:  ", x, y, w, h)
+
+                if target_col == 'Disease_Name':
+                    cls_id = ["impacted", "caries", "periapical","deep_caries"].index(filtered_df.iloc[idx][target_col])
+                elif target_col == 'Enumeration':
+                    cls_id = filtered_df.iloc[idx][target_col]
+                else:
+                    cls_id = ["Upper Right", "Upper Left","Lower Left","Lower Right"].index(filtered_df.iloc[idx][target_col])
+
+                if   'train' in name: path = os.path.join(output_root,'train','labels',fname.replace('png','txt'))
+                elif 'valid' in name: path = os.path.join(output_root,'valid','labels',fname.replace('png','txt'))
+                else                : path = os.path.join(output_root,'test','labels',fname.replace('png','txt'))
+
+
+
+                with open(path,'a') as f:
+                    f.write(f'{cls_id}  {x1}  {y1}  {x2}  {y2}\n')
+
+            if os.path.exists(path.replace('labels','images').replace('txt','png')):
                 raise FileExistsError(f"Error: There is a files are existed...\nIf you need to ignore it then type (None) in {name} parameter to not duplicate the files!\nOr make sure that you deleted the files")
+            
+            shutil.copy2(os.path.join(images_path,fname),path.replace('labels','images').replace('txt','png'))
+                # break 
 
-
-            with open(path,'a') as f:
-                f.write(f'{cls_id}  {x1}  {y1}  {x2}  {y2}\n')
-
-            shutil.copy2(os.path.join(images_path,file_name),path.replace('labels','images').replace('txt','png'))
-            # break 
         print("Done!")
