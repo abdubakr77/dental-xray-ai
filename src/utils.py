@@ -153,7 +153,7 @@ def export_yolo_dataset(target_col:str, images_path:str ,output_root: str, train
     for name,df in ds_partitions.items():
         for fname in tqdm(df['File_Name'].unique().tolist(),f'{name} Is Processing Now...'):
 
-            filtered_df = df[df['File_Name'] == fname]
+            filtered_df = df[df['File_Name'] == fname][target_col].unique().tolist()
 
             for idx in range(len(filtered_df)):
 
