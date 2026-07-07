@@ -140,7 +140,7 @@ def multilabel_train_val_test_split(df,y,test_size=0.2,apply_check = False):
 
 
 
-def export_yolo_dataset(target_col:str, images_path:str ,output_root: str, train_df, valid_df=None, test_df=None):
+def convert_to_yolo(target_col:str, images_path:str ,output_root: str, train_df, valid_df, test_df=None):
     print("WARNING: Please Check all txt files in labels folder are cleared because this function is recommended to run it only once.\nYou Have 5 seconds from now if you need to stop the code!")
     sleep(5)
     # clear_output(wait=True)
@@ -154,6 +154,8 @@ def export_yolo_dataset(target_col:str, images_path:str ,output_root: str, train
         for fname in tqdm(df['File_Name'].unique().tolist(),f'{name} Is Processing Now...'):
 
             filtered_df = df[df['File_Name'] == fname]
+
+            output_img_name_no_ext = f"{fname.split('.')[0]}"
 
             for idx in range(len(filtered_df)):
 
@@ -178,39 +180,32 @@ def export_yolo_dataset(target_col:str, images_path:str ,output_root: str, train
                 if target_col == 'Disease_Name':
                     cls_id = ["impacted", "caries", "periapical","deep_caries"].index(filtered_df.iloc[idx][target_col])
                 elif target_col == 'Enumeration':
-                    cls_id = filtered_df.iloc[idx][target_col]
+                    cls_id = 0
                 else:
                     cls_id = ["Upper Right", "Upper Left","Lower Left","Lower Right"].index(filtered_df.iloc[idx][target_col])
 
-                if   'train' in name: path = os.path.join(output_root,'train','labels',fname.replace('png','txt'))
-                elif 'valid' in name: path = os.path.join(output_root,'valid','labels',fname.replace('png','txt'))
-                else                : path = os.path.join(output_root,'test','labels',fname.replace('png','txt'))
+                if   'train' in name: labels_path = os.path.join(output_root,'train','labels',output_img_name_no_ext+'.txt'); imgs_path = os.path.join(output_root,'train','images',output_img_name_no_ext+'.png')
+                elif 'valid' in name: labels_path = os.path.join(output_root,'valid','labels',output_img_name_no_ext+'.txt'); imgs_path = os.path.join(output_root,'valid','images',output_img_name_no_ext+'.png')
+                else                : labels_path = os.path.join(output_root,'test','labels',output_img_name_no_ext+'.txt'); imgs_path = os.path.join(output_root,'test','images',output_img_name_no_ext+'.png')
 
 
 
-                with open(path,'a') as f:
+                with open(labels_path,'a') as f:
                     f.write(f'{cls_id}  {x1}  {y1}  {x2}  {y2}\n')
 
-            if os.path.exists(path.replace('labels','images').replace('txt','png')):
+            if os.path.exists(imgs_path):
                 raise FileExistsError(f"Error: There is a files are existed...\nIf you need to ignore it then type (None) in {name} parameter to not duplicate the files!\nOr make sure that you deleted the files")
             
-            shutil.copy2(os.path.join(images_path,fname),path.replace('labels','images').replace('txt','png'))
+            shutil.copy2(os.path.join(images_path,fname),imgs_path)
                 # break 
 
         print("Done!")
 
 
-def crop_image(image,x1,y1,x2,y2):
+def crop_image(image,x,y,w,h):
     img_h, img_w = image.shape[:2]
-
-    x_pixel = int((x1 - x2 / 2) * img_w)
-    y_pixel = int((y1 - y2 / 2) * img_h)
-    w_pixel = int(x2 * img_w)
-    h_pixel = int(y2 * img_h)
-
-    x_end = x_pixel + w_pixel
-    y_end = y_pixel + h_pixel
-
-    cropped_img = image[y_pixel:y_end,x_pixel:x_end]
-
-    return cropped_img
+    x1 = max(0, int(x))
+    y1 = max(0, int(y))
+    x2 = min(img_w, int(x + w))
+    y2 = min(img_h, int(y + h))
+    return image[y1:y2, x1:x2]
