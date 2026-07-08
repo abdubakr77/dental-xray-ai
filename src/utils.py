@@ -181,14 +181,14 @@ def convert_to_yolo(target_col:str, images_path:str ,output_root: str, train_df,
                     cls_id = ["impacted", "caries", "periapical","deep_caries"].index(filtered_df.iloc[idx][target_col])
                 elif target_col == 'Enumeration':
                     cls_id = 0
+                    if 'Disease_Name' in df.columns:
+                        output_img_name_no_ext = f'{fname.split('.')[0]}_dis_teeth'
                 else:
                     cls_id = ["Upper Right", "Upper Left","Lower Left","Lower Right"].index(filtered_df.iloc[idx][target_col])
 
                 if   'train' in name: labels_path = os.path.join(output_root,'train','labels',output_img_name_no_ext+'.txt'); imgs_path = os.path.join(output_root,'train','images',output_img_name_no_ext+'.png')
                 elif 'valid' in name: labels_path = os.path.join(output_root,'valid','labels',output_img_name_no_ext+'.txt'); imgs_path = os.path.join(output_root,'valid','images',output_img_name_no_ext+'.png')
                 else                : labels_path = os.path.join(output_root,'test','labels',output_img_name_no_ext+'.txt'); imgs_path = os.path.join(output_root,'test','images',output_img_name_no_ext+'.png')
-
-
 
                 with open(labels_path,'a') as f:
                     f.write(f'{cls_id}  {x1}  {y1}  {x2}  {y2}\n')
