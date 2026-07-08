@@ -209,3 +209,70 @@ def crop_image(image,x,y,w,h):
     x2 = min(img_w, int(x + w))
     y2 = min(img_h, int(y + h))
     return image[y1:y2, x1:x2]
+
+
+
+def prepare_disease_classifier(images_path,output_root,train_df,valid_df,test_df=None):
+    import cv2
+
+    ds_partitions = {'train_df':train_df,
+                     'valid_df':valid_df,
+                     'test_df':test_df,}
+    
+
+    for name,df in ds_partitions.items():
+        for fname in tqdm(df['File_Name'].unique().tolist(),f'{name} Is Processing Now...'):
+
+            filtered_df = df[df['File_Name'] == fname]
+
+            fname_no_ext = f"{fname.split('.')[0]}"
+
+            for idx in range(len(filtered_df)):
+
+                x, y, w, h = filtered_df.iloc[idx]['Bbox']
+
+                train_path = os.path.join(output_root,'train')
+                valid_path = os.path.join(output_root,'valid')
+                test_path = os.path.join(output_root,'test')
+
+                if 'Disease_Name' in df.columns:
+                    cls_id = ["impacted", "caries", "periapical", "deep_caries"].index(
+                        filtered_df.iloc[idx]['Disease_Name']
+                    )
+                    output_img_name = f'{fname_no_ext}.png'
+                else: # It's just for enumeration dataset
+                    cls_id = 4
+                    output_img_name = f'{fname_no_ext}_{idx}.png'
+
+                if 'train' in name:
+                    folder = next(
+                        (fol for fol in os.listdir(train_path)
+                        if fol.startswith(f"{cls_id}_")),
+                        '4_no disease'
+                    )
+                    fol_class_path = os.path.join(train_path, folder)
+
+                elif 'valid' in name:
+                    folder = next(
+                        (fol for fol in os.listdir(valid_path)
+                        if fol.startswith(f"{cls_id}_")),
+                        '4_no disease'
+                    )
+                    fol_class_path = os.path.join(valid_path, folder)
+
+                else:
+                    folder = next(
+                        (fol for fol in os.listdir(test_path)
+                        if fol.startswith(f"{cls_id}_")),
+                        '4_no disease'
+                    )
+                    fol_class_path = os.path.join(test_path, folder)
+
+                if len(os.listdir(fol_class_path)) >= 1:
+                    raise FileExistsError(f'There is files are existed at folder: {fol_class_path} please delete it first to re-preparing again!')
+
+                img = cv2.imread(os.path.join(images_path,fname_no_ext+'.png'))
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                cropped_image = crop_image(img,x,y,w,h)
+
+                cv2.imwrite(os.path.join(fol_class_path,output_img_name),cropped_image)
