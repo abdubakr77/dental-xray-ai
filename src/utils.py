@@ -4,6 +4,7 @@ import os
 import shutil
 from time import sleep
 from tqdm import tqdm
+import cv2
 
 # pip install iterative-stratification
 from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit
@@ -213,7 +214,6 @@ def crop_image(image,x,y,w,h):
 
 
 def prepare_disease_classifier(images_path,output_root,train_df,valid_df,test_df=None):
-    import cv2
 
     ds_partitions = {'train_df':train_df,
                      'valid_df':valid_df,
@@ -276,3 +276,26 @@ def prepare_disease_classifier(images_path,output_root,train_df,valid_df,test_df
                 cropped_image = crop_image(img,x,y,w,h)
 
                 cv2.imwrite(os.path.join(fol_class_path,output_img_name),cropped_image)
+
+
+def read_image_and_label(filename_no_ext,data_yaml):
+    
+    img_path = os.path.join(data_yaml['train'], filename_no_ext + ".png")
+    label_path = os.path.join(data_yaml['train'].replace('images','labels'), filename_no_ext + ".txt")
+
+    image = cv2.imread(img_path)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    
+    bboxes = []
+    class_labels = []
+    
+    with open(label_path, 'r') as f:
+        for line in f.readlines():
+            values = line.split()
+            cls_id = int(float(values[0]))
+            cx, cy, w, h = map(float, values[1:])
+            
+            bboxes.append([cx, cy, w, h])
+            class_labels.append(cls_id)
+    
+    return image, bboxes, class_labels
