@@ -5,6 +5,11 @@ import shutil
 from time import sleep
 from tqdm import tqdm
 import cv2
+import sys
+sys.path.append(os.path.abspath('..'))
+
+from src.vis import visualize_augmentation
+import albumentations as A
 
 # pip install iterative-stratification
 from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit
@@ -299,3 +304,30 @@ def read_image_and_label(filename_no_ext,data_yaml):
             class_labels.append(cls_id)
     
     return image, bboxes, class_labels
+
+
+def augment_and_save(image, bboxes, class_labels, n_copies, base_filename, output_images, output_labels, debugging=False):
+    for n in range(n_copies):
+        img_h, img_w = image.shape[:2]
+        aspect = img_w / img_h
+        transform = A.Compose([
+            A.Rotate(limit=4, p=0.25),
+            A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.2),
+            A.CenterCrop(height=int(img_h * 0.90), width=int(img_w * 0.90)),
+            A.CLAHE(clip_limit=2.0, p=0.5),
+            A.RandomResizedCrop(size=(img_h, img_w), scale=(0.4, 0.7), ratio=(aspect * 0.95, aspect * 1.05), p=0.5),
+        ], bbox_params=A.BboxParams(format='yolo', label_fields=['class_labels'], min_visibility=0.7))
+
+        augmented = transform(image=image, bboxes=bboxes, class_labels=class_labels)
+        new_img = augmented['image']
+        new_bboxes = augmented['bboxes']
+        new_labels = augmented['class_labels']
+        new_filename = f"{base_filename}_aug{n}"
+
+        if debugging:
+            visualize_augmentation(new_img, new_bboxes, new_labels, title=new_filename)
+        else:
+            cv2.imwrite(os.path.join(output_images, f"{new_filename}.png"), new_img)
+            with open(os.path.join(output_labels, f"{new_filename}.txt"), 'w') as f:
+                for cls_id, (cx, cy, w, h) in zip(new_labels, new_bboxes):
+                    f.write(f"{cls_id}  {cx}  {cy}  {w}  {h}\n")
