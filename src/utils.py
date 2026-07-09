@@ -313,12 +313,12 @@ def augment_and_save(image, bboxes, class_labels, n_copies, base_filename, outpu
         img_h, img_w = image.shape[:2]
         aspect = img_w / img_h
         transform = A.Compose([
-            A.Rotate(limit=6, p=0.4),
+            A.Rotate(limit=4, p=0.4),
             A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.35),
             A.CenterCrop(height=int(img_h * 0.90), width=int(img_w * 0.90)),
             A.CLAHE(clip_limit=2.0, p=0.5),
             A.RandomResizedCrop(size=(img_h, img_w), scale=(0.4, 0.7), ratio=(aspect * 0.95, aspect * 1.05), p=0.7),
-        ], bbox_params=A.BboxParams(format='yolo', label_fields=['class_labels'], min_visibility=0.7))
+        ], bbox_params=A.BboxParams(format='yolo', label_fields=['class_labels'], min_visibility=0.65))
 
         augmented = transform(image=image, bboxes=bboxes, class_labels=class_labels)
         new_img = augmented['image']
