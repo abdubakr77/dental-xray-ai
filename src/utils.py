@@ -10,6 +10,8 @@ sys.path.append(os.path.abspath('..'))
 
 from src.vis import visualize_augmentation
 import albumentations as A
+from IPython.display import clear_output
+import numpy as np 
 
 # pip install iterative-stratification
 from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit
@@ -311,11 +313,11 @@ def augment_and_save(image, bboxes, class_labels, n_copies, base_filename, outpu
         img_h, img_w = image.shape[:2]
         aspect = img_w / img_h
         transform = A.Compose([
-            A.Rotate(limit=4, p=0.25),
-            A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.2),
+            A.Rotate(limit=6, p=0.4),
+            A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.35),
             A.CenterCrop(height=int(img_h * 0.90), width=int(img_w * 0.90)),
             A.CLAHE(clip_limit=2.0, p=0.5),
-            A.RandomResizedCrop(size=(img_h, img_w), scale=(0.4, 0.7), ratio=(aspect * 0.95, aspect * 1.05), p=0.5),
+            A.RandomResizedCrop(size=(img_h, img_w), scale=(0.4, 0.7), ratio=(aspect * 0.95, aspect * 1.05), p=0.65),
         ], bbox_params=A.BboxParams(format='yolo', label_fields=['class_labels'], min_visibility=0.7))
 
         augmented = transform(image=image, bboxes=bboxes, class_labels=class_labels)
@@ -331,3 +333,65 @@ def augment_and_save(image, bboxes, class_labels, n_copies, base_filename, outpu
             with open(os.path.join(output_labels, f"{new_filename}.txt"), 'w') as f:
                 for cls_id, (cx, cy, w, h) in zip(new_labels, new_bboxes):
                     f.write(f"{cls_id}  {cx}  {cy}  {w}  {h}\n")
+
+
+
+def apply_smart_aug(data_yaml,apply_debug=False):
+
+    imgs_path = data_yaml['train']
+    labels_path = data_yaml['train'].replace('images','labels')
+    
+    all_files_no_ext = [item.split('.')[0] for item in os.listdir(imgs_path)]
+
+    if 'aug' in all_files_no_ext:
+        print(f"Warning: Found {all_files_no_ext.count('aug')} images are already augmented!")
+        if input(f'Do you want to delete all {all_files_no_ext.count('aug')} augmented images before processing on the images? - (y or n): ').lower().strip() == 'y':
+            
+            for fname in all_files_no_ext:
+                if fname.count('aug') >= 1:
+                    img_path = os.path.join(imgs_path, fname+'.png')
+                    label_path = os.path.join(labels_path, fname+'.txt')
+                    try:
+                        os.remove(img_path)
+                        os.remove(label_path)
+                    except:
+                        pass
+                    print(f'{fname} deleted!')
+            
+            clear_output()
+        
+
+    if apply_debug:
+        rand_fname = np.random.choice(all_files_no_ext)
+        image,bboxes,class_labels = read_image_and_label(rand_fname,data_yaml)
+        augment_and_save(image=image,
+                        bboxes=bboxes,
+                        class_labels=class_labels,
+                        n_copies=3,
+                        base_filename=rand_fname,
+                        output_images=imgs_path,
+                        output_labels=labels_path,
+                        debugging=True)
+
+    else:
+        for fname in tqdm(all_files_no_ext,desc=f'Augmenting Images Now...'):
+
+            image,bboxes,class_labels = read_image_and_label(fname,data_yaml)
+
+            if 'caries' in data_yaml['names']:
+                if 2 in class_labels:
+                    n = 10
+                elif 0 in class_labels or 3 in  class_labels:
+                    n = 3
+                else:
+                    n = 1
+            else:
+                n=1
+            
+            augment_and_save(image=image,
+                            bboxes=bboxes,
+                            class_labels=class_labels,
+                            n_copies=n,
+                            base_filename=fname,
+                            output_images=imgs_path,
+                            output_labels=labels_path,)
