@@ -243,10 +243,11 @@ def prepare_disease_classifier(images_path,output_root,train_df,valid_df,test_df
                 test_path = os.path.join(output_root,'test')
 
                 if 'Disease_Name' in df.columns:
-                    cls_id = ["impacted", "caries", "periapical", "deep_caries"].index(
+                    dis_list = ["impacted", "caries", "periapical", "deep_caries"]
+                    cls_id = dis_list.index(
                         filtered_df.iloc[idx]['Disease_Name']
                     )
-                    output_img_name = f'{fname_no_ext}.png'
+                    output_img_name = f'{fname_no_ext}_{dis_list[cls_id][0].capitalize()}_{idx}.png'
                 else: # It's just for enumeration dataset
                     cls_id = 4
                     output_img_name = f'{fname_no_ext}_{idx}.png'
@@ -275,7 +276,7 @@ def prepare_disease_classifier(images_path,output_root,train_df,valid_df,test_df
                     )
                     fol_class_path = os.path.join(test_path, folder)
 
-                if len(os.listdir(fol_class_path)) >= 1:
+                if os.path.exists(os.path.join(fol_class_path,output_img_name)):
                     raise FileExistsError(f'There is files are existed at folder: {fol_class_path} please delete it first to re-preparing again!')
 
                 img = cv2.imread(os.path.join(images_path,fname_no_ext+'.png'))
