@@ -64,7 +64,7 @@ def smart_predict(yolo_model, images_path, conf_filter=0.3, save_crop_output_ima
         if save_crop_output_image:
             cropped_image = original_image[y1:y2, x1:x2]
             if os.path.exists(save_dir):
-                cv2.imwrite(os.path.join(save_dir,f'{rand_image_name}_{i}_{cls_name}'),cropped_image)
+                cv2.imwrite(os.path.join(save_dir,f'{rand_image_name}_{i}_{cls_name}.png'),cropped_image)
             else:
                 raise Exception('Save Dir Path is not existed! Please check the path is correct and exists')
 
@@ -79,11 +79,19 @@ def smart_predict(yolo_model, images_path, conf_filter=0.3, save_crop_output_ima
     ax[1].set_title('Object Detected')
 
     if apply_custom_draw_box:
-        ax[1].imshow(image_custom_draw)
+        output_image = image_custom_draw
     else:
-        ax[1].imshow(output.plot()[:,:,::-1])
+        output_image = output.plot()[:,:,::-1]
 
+    ax[1].imshow(output_image)
     ax[1].axis('off')
     
+    if save_output:
+        if os.path.exists(save_dir):
+            cv2.imwrite(os.path.join(save_dir,f'{rand_image_name}_full_output.png'),output_image)
+        else:
+            raise Exception('Save Dir Path is not existed! Please check the path is correct and exists')
+        
+
     plt.tight_layout()
     plt.show()
