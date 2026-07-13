@@ -35,7 +35,7 @@ def draw_corner_box(img, x1, y1, x2, y2, label_name, confidence, color=(0, 255, 
 
 
 
-def smart_predict(yolo_model, images_path, conf_filter=0.3, custom_draw_box=None, crop_output_image:str=False, save_output:bool=False, save_dir:str=None):
+def smart_predict(yolo_model, images_path, conf_filter=0.3, apply_custom_draw_box=False, crop_output_image:str=False, save_output:bool=False, save_dir:str=None):
 
     if not os.path.exists(images_path):
         raise FileNotFoundError('Image Path not existed! Please Check the path is correct')
@@ -48,22 +48,34 @@ def smart_predict(yolo_model, images_path, conf_filter=0.3, custom_draw_box=None
     boxes = output.boxes
     names = output.names
 
+    original_image = cv2.cvtColor(cv2.imread(rand_image_path),cv2.COLOR_BGR2RGB)
+
+    image_custom_draw = original_image.copy()
+
     _,ax = plt.subplots(1,2,figsize=(18,12))
     for i in range(len(boxes)):
         confidence = np.round(boxes.conf[i].item(),2)
         coordinates = boxes.xyxy[i].tolist()
         cls_name = names[boxes.cls[i].item()]
 
+        x1, y1, x2, y2 = coordinates
+        draw_corner_box(image_custom_draw, x1, y1, x2, y2, cls_name, confidence)
+
         print(f'Class Name: {cls_name}')
         print(f'Coordinates: {coordinates}')
         print(f'Confidence: %{(confidence * 100):.4}')
 
     ax[0].set_title('Original Image')
-    ax[0].imshow(cv2.cvtColor(cv2.imread(rand_image_path),cv2.COLOR_BGR2RGB))
+    ax[0].imshow(original_image)
     ax[0].axis('off')
 
     ax[1].set_title('Object Detected')
-    ax[1].imshow(output.plot()[:,:,::-1])
+
+    if apply_custom_draw_box:
+        ax[1].imshow(output.plot()[:,:,::-1])
+    else:
+        ax[1].imshow(image_custom_draw)
+
     ax[1].axis('off')
     
     plt.tight_layout()
