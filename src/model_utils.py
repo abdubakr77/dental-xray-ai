@@ -35,20 +35,20 @@ def draw_corner_box(img, x1, y1, x2, y2, label_name, confidence, color, length, 
 
 
 
-def smart_predict(yolo_model, images_path, conf_filter=0.3, crop_output_image:str=False, save_output:bool=False, save_dir:str=None, apply_custom_draw_box=False,color=(0, 255, 0), length=35, thickness=3):
+def smart_predict(yolo_model, images_path, conf_filter=0.3, save_crop_output_image:str=False, save_output:bool=False, save_dir:str=None, apply_custom_draw_box=False,color=(0, 255, 0), length=35, thickness=3):
 
     if not os.path.exists(images_path):
         raise FileNotFoundError('Image Path not existed! Please Check the path is correct')
-    
-    rand_image_path = os.path.join(images_path,np.random.choice(os.listdir(images_path)))
+    rand_image_name = np.random.choice(os.listdir(images_path))
+    image_path = os.path.join(images_path,rand_image_name)
 
-    outputs = yolo_model.predict(rand_image_path,conf=conf_filter)
+    outputs = yolo_model.predict(image_path,conf=conf_filter)
 
     output = outputs[0]
     boxes = output.boxes
     names = output.names
 
-    original_image = cv2.cvtColor(cv2.imread(rand_image_path),cv2.COLOR_BGR2RGB)
+    original_image = cv2.cvtColor(cv2.imread(image_path),cv2.COLOR_BGR2RGB)
 
     image_custom_draw = original_image.copy()
 
@@ -60,6 +60,10 @@ def smart_predict(yolo_model, images_path, conf_filter=0.3, crop_output_image:st
 
         x1, y1, x2, y2 = map(int, coordinates)
         draw_corner_box(image_custom_draw, x1, y1, x2, y2, cls_name, confidence,color,length,thickness)
+        
+        if save_crop_output_image and save_dir:
+            cropped_image = original_image[y1:y2, x1:x2]
+            cv2.imwrite(os.path.join(save_dir,f'{rand_image_name}_{i}_{cls_name}'),cropped_image)
 
         print(f'Class Name: {cls_name}')
         print(f'Coordinates: {coordinates}')
