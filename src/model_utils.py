@@ -1,9 +1,16 @@
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
-def predict(yolo_model, image, conf_filter=0.3, custom_draw_box=None, crop_output_image:str=False, save_output:bool=False, save_dir:str=None):
-    outputs = yolo_model.predict(image,conf=conf_filter)
+def smart_predict(yolo_model, images_path, conf_filter=0.3, custom_draw_box=None, crop_output_image:str=False, save_output:bool=False, save_dir:str=None):
+
+    if not os.path.exists(images_path):
+        raise FileNotFoundError('Image Path not existed! Please Check the path is correct')
+    
+    rand_image_path = os.path.join(images_path,np.random.choice(os.listdir(images_path)))
+
+    outputs = yolo_model.predict(rand_image_path,conf=conf_filter)
 
     output = outputs[0]
     boxes = output.boxes
@@ -20,7 +27,7 @@ def predict(yolo_model, image, conf_filter=0.3, custom_draw_box=None, crop_outpu
         print(f'Confidence: %{(confidence * 100):.4}')
 
     ax[0].set_title('Original Image')
-    ax[0].imshow(cv2.cvtColor(cv2.imread(image),cv2.COLOR_BGR2RGB))
+    ax[0].imshow(cv2.cvtColor(cv2.imread(rand_image_path),cv2.COLOR_BGR2RGB))
     ax[0].axis('off')
 
     ax[1].set_title('Object Detected')
