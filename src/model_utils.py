@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-def draw_corner_box(img, x1, y1, x2, y2, label_name, confidence, color=(0, 255, 0), length=35, thickness=3):
+def draw_corner_box(img, x1, y1, x2, y2, label_name, confidence, color, length, thickness):
     """
     Draw a corner-style bounding box with a label badge on an image in-place.
 
@@ -35,7 +35,7 @@ def draw_corner_box(img, x1, y1, x2, y2, label_name, confidence, color=(0, 255, 
 
 
 
-def smart_predict(yolo_model, images_path, conf_filter=0.3, apply_custom_draw_box=False, crop_output_image:str=False, save_output:bool=False, save_dir:str=None):
+def smart_predict(yolo_model, images_path, conf_filter=0.3, crop_output_image:str=False, save_output:bool=False, save_dir:str=None, apply_custom_draw_box=False,color=(0, 255, 0), length=35, thickness=3):
 
     if not os.path.exists(images_path):
         raise FileNotFoundError('Image Path not existed! Please Check the path is correct')
@@ -58,8 +58,8 @@ def smart_predict(yolo_model, images_path, conf_filter=0.3, apply_custom_draw_bo
         coordinates = boxes.xyxy[i].tolist()
         cls_name = names[boxes.cls[i].item()]
 
-        x1, y1, x2, y2 = coordinates
-        draw_corner_box(image_custom_draw, x1, y1, x2, y2, cls_name, confidence)
+        x1, y1, x2, y2 = map(int, coordinates)
+        draw_corner_box(image_custom_draw, x1, y1, x2, y2, cls_name, confidence,color,length,thickness)
 
         print(f'Class Name: {cls_name}')
         print(f'Coordinates: {coordinates}')
@@ -72,9 +72,9 @@ def smart_predict(yolo_model, images_path, conf_filter=0.3, apply_custom_draw_bo
     ax[1].set_title('Object Detected')
 
     if apply_custom_draw_box:
-        ax[1].imshow(output.plot()[:,:,::-1])
-    else:
         ax[1].imshow(image_custom_draw)
+    else:
+        ax[1].imshow(output.plot()[:,:,::-1])
 
     ax[1].axis('off')
     
