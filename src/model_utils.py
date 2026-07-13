@@ -39,8 +39,8 @@ def smart_predict(yolo_model, images_path, conf_filter=0.3, save_crop_output_ima
 
     if not os.path.exists(images_path):
         raise FileNotFoundError('Image Path not existed! Please Check the path is correct')
-    rand_image_name = np.random.choice(os.listdir(images_path))
-    image_path = os.path.join(images_path,rand_image_name)
+    rand_image_name = np.random.choice(os.listdir(images_path)).split('.')[0]
+    image_path = os.path.join(images_path,rand_image_name+'.png')
 
     outputs = yolo_model.predict(image_path,conf=conf_filter)
 
