@@ -60,10 +60,13 @@ def smart_predict(yolo_model, images_path, conf_filter=0.3, save_crop_output_ima
 
         x1, y1, x2, y2 = map(int, coordinates)
         draw_corner_box(image_custom_draw, x1, y1, x2, y2, cls_name, confidence,color,length,thickness)
-        
-        if save_crop_output_image and save_dir:
+
+        if save_crop_output_image:
             cropped_image = original_image[y1:y2, x1:x2]
-            cv2.imwrite(os.path.join(save_dir,f'{rand_image_name}_{i}_{cls_name}'),cropped_image)
+            if os.path.exists(save_dir):
+                cv2.imwrite(os.path.join(save_dir,f'{rand_image_name}_{i}_{cls_name}'),cropped_image)
+            else:
+                raise Exception('Save Dir Path is not existed! Please check the path is correct and exists')
 
         print(f'Class Name: {cls_name}')
         print(f'Coordinates: {coordinates}')
