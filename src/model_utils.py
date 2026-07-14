@@ -27,18 +27,19 @@ def draw_corner_box(img, x1, y1, x2, y2, label_name, confidence, color, length, 
     cv2.line(img, (x2, y2), (x2 - length, y2), color, thickness)
     cv2.line(img, (x2, y2), (x2, y2 - length), color, thickness)
 
-    # draw filled badge above the box, then write text on top
-    text = f"{label_name} {confidence*100:.1f}%"
-    (tw, th), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
-    cv2.rectangle(img, (x1, y1 - th - 8), (x1 + tw + 4, y1), color, -1)
-    cv2.putText(img, text, (x1 + 2, y1 - 4), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 2)
+# draw filled badge above the box, then write text on top
+    if label_name and confidence:
+        text = f"{label_name} {confidence*100:.1f}%"
+        (tw, th), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 1.0, 2)
+        cv2.rectangle(img, (x1, y1 - th - 15), (x1 + tw + 10, y1), color, -1)
+        cv2.putText(img, text, (x1 + 5, y1 - 8), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 0), 2)
 
 
 
 def smart_predict(yolo_model, images_path, conf_filter=0.3, 
                   show_true_boxes = False, save_crop_output_image:str=False, 
                   save_output:bool=False, save_dir:str=None, 
-                  apply_custom_draw_box=False,color=(0, 0, 255), length=35, thickness=3):
+                  apply_custom_draw_box=False,color=(255, 0, 0), length=150, thickness=5):
 
     if not os.path.exists(images_path):
         raise FileNotFoundError('Image Path not existed! Please Check the path is correct')
@@ -101,7 +102,7 @@ def smart_predict(yolo_model, images_path, conf_filter=0.3,
                 x2 = int((cx + w/2) * image_w)
                 y2 = int((cy + h/2) * image_h)
                 
-                draw_corner_box(output_image, x1, y1, x2, y2, 'GT Box', confidence,color=(0, 0, 255),length=100,thickness=3)
+                draw_corner_box(output_image , x1, y1, x2, y2, None, None ,color=(0, 255, 0),length=50,thickness=2)
 
     ax[1].imshow(output_image)
     ax[1].axis('off')
