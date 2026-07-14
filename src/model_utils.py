@@ -102,7 +102,7 @@ def smart_predict(yolo_model, images_path, conf_filter=0.3,
                 x2 = int((cx + w/2) * image_w)
                 y2 = int((cy + h/2) * image_h)
                 
-                draw_corner_box(output_image , x1, y1, x2, y2, None, None ,color=(0, 255, 0),length=50,thickness=2)
+                draw_corner_box(output_image if apply_custom_draw_box else output_image[:,:,::-1], x1, y1, x2, y2, None, None ,color=(0, 255, 0),length=50,thickness=2)
 
     ax[1].imshow(output_image)
     ax[1].axis('off')
