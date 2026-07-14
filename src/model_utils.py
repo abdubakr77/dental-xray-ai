@@ -35,7 +35,10 @@ def draw_corner_box(img, x1, y1, x2, y2, label_name, confidence, color, length, 
 
 
 
-def smart_predict(yolo_model, images_path, conf_filter=0.3, save_crop_output_image:str=False, save_output:bool=False, save_dir:str=None, apply_custom_draw_box=False,color=(0, 255, 0), length=35, thickness=3):
+def smart_predict(yolo_model, images_path, conf_filter=0.3, 
+                  show_true_boxes = False, save_crop_output_image:str=False, 
+                  save_output:bool=False, save_dir:str=None, 
+                  apply_custom_draw_box=False,color=(0, 0, 255), length=35, thickness=3):
 
     if not os.path.exists(images_path):
         raise FileNotFoundError('Image Path not existed! Please Check the path is correct')
@@ -82,6 +85,23 @@ def smart_predict(yolo_model, images_path, conf_filter=0.3, save_crop_output_ima
         output_image = image_custom_draw
     else:
         output_image = output.plot()[:,:,::-1]
+
+    if show_true_boxes:
+        image_h , image_w = original_image.shape[:2]
+        labels_path = images_path.replace('images','labels')
+        label_name = rand_image_name
+        label_file_path = os.path.join(labels_path,label_name+'.txt')
+        with open(label_file_path,'r') as f:
+            for line in f.readlines():
+
+                cx,cy,w,h = map(float,line.split()[1:])
+
+                x1 = int((cx - w/2) * image_w)
+                y1 = int((cy - h/2) * image_h)
+                x2 = int((cx + w/2) * image_w)
+                y2 = int((cy + h/2) * image_h)
+                
+                draw_corner_box(output_image, x1, y1, x2, y2, 'GT Box', confidence,color=(0, 0, 255),length=100,thickness=3)
 
     ax[1].imshow(output_image)
     ax[1].axis('off')
