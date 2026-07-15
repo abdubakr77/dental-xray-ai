@@ -78,3 +78,12 @@ def load_args(run_dir):
         return yaml.safe_load(f) or {}
 
 
+def load_results(run_dir):
+    path = os.path.join(run_dir, "results.csv")
+    if not os.path.exists(path):
+        return None
+    df = pd.read_csv(path)
+    df.columns = [c.strip() for c in df.columns]
+    return df
+
+
