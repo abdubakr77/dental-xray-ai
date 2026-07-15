@@ -265,3 +265,16 @@ def generate_report(run_dir, output_path, title="YOLO Training Report"):
 
     story.append(PageBreak())
 
+    # ---------------- 3. Confusion Matrix ----------------
+    story.append(Paragraph("Per-Class Performance", styles["SectionHeader"]))
+    cm_path = find_first(run_dir, SUBFOLDER_CONFUSION_MATRIX,
+                          ["confusion_matrix.png", "confusion_matrix_normalized.png"])
+    img = img_flowable(cm_path, max_width=page_width, max_height=11 * cm)
+    if img:
+        story.append(img)
+        story.append(Paragraph("Figure: confusion matrix on the validation set.", styles["Caption"]))
+    else:
+        story.append(Paragraph("No confusion matrix found in run directory.", styles["SubText"]))
+
+    story.append(PageBreak())
+
