@@ -133,3 +133,38 @@ def img_flowable(path, max_width, max_height=None):
     return RLImage(path, width=new_w, height=new_h)
 
 
+def parse_test_prediction_files(files):
+    """
+    Groups test prediction files by base image ID.
+    Handles:
+      train_76_full_output.png
+      train_81_0_Upper Right.png
+      train_81_1_Lower Right.png
+      ...
+    """
+    grouped = defaultdict(lambda: {"full": None, "quadrants": []})
+
+    full_pattern = re.compile(r"^(train_\d+)_full_output\.(png|jpg)$", re.IGNORECASE)
+    quad_pattern = re.compile(r"^(train_\d+)_(\d+)_(.+)\.(png|jpg)$", re.IGNORECASE)
+
+    for path in files:
+        fname = os.path.basename(path)
+
+        m_full = full_pattern.match(fname)
+        if m_full:
+            grouped[m_full.group(1)]["full"] = path
+            continue
+
+        m_quad = quad_pattern.match(fname)
+        if m_quad:
+            base_id = m_quad.group(1)
+            quad_idx = int(m_quad.group(2))
+            quad_name = m_quad.group(3)
+            grouped[base_id]["quadrants"].append((quad_idx, quad_name, path))
+
+    for base_id in grouped:
+        grouped[base_id]["quadrants"].sort(key=lambda x: x[0])
+
+    return grouped
+
+
