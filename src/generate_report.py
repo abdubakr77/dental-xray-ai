@@ -278,3 +278,21 @@ def generate_report(run_dir, output_path, title="YOLO Training Report"):
 
     story.append(PageBreak())
 
+    # ---------------- 4. Box Metric Curves ----------------
+    story.append(Paragraph("Precision / Recall / F1 Curves", styles["SectionHeader"]))
+    curve_files = [f for f in [
+        find_first(run_dir, SUBFOLDER_BOX_CURVES, ["BoxP_curve.png"]),
+        find_first(run_dir, SUBFOLDER_BOX_CURVES, ["BoxR_curve.png"]),
+        find_first(run_dir, SUBFOLDER_BOX_CURVES, ["BoxF1_curve.png"]),
+        find_first(run_dir, SUBFOLDER_BOX_CURVES, ["BoxPR_curve.png"]),
+    ] if f]
+    for path in curve_files:
+        img = img_flowable(path, max_width=page_width * 0.85, max_height=8 * cm)
+        if img:
+            story.append(img)
+            story.append(Paragraph(os.path.basename(path), styles["Caption"]))
+    if not curve_files:
+        story.append(Paragraph("No box metric curve images found.", styles["SubText"]))
+
+    story.append(PageBreak())
+
