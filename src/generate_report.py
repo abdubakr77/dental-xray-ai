@@ -194,3 +194,28 @@ def generate_report(run_dir, output_path, title="YOLO Training Report"):
     story.append(Paragraph(f"Run directory: {run_dir}", styles["SubText"]))
     story.append(Spacer(1, 16))
 
+    # ---------------- 1. Configuration ----------------
+    args = load_args(run_dir)
+    if args:
+        story.append(Paragraph("Configuration", styles["SectionHeader"]))
+        config_keys = ["model", "epochs", "imgsz", "batch", "optimizer",
+                       "lr0", "lrf", "patience", "device", "workers", "auto_augment"]
+        rows = [["Parameter", "Value"]]
+        for k in config_keys:
+            if k in args:
+                rows.append([k, str(args[k])])
+        table = Table(rows, colWidths=[6 * cm, 8 * cm])
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2b2b2b")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 9),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f2f2f2")]),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#cccccc")),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ]))
+        story.append(table)
+        story.append(Spacer(1, 10))
+
