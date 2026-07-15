@@ -414,3 +414,15 @@ def generate_report(run_dir, output_path, title="YOLO Training Report"):
     print(f"Report saved to: {output_path}")
 
 
+# ----------------------------------------------------------------------
+# CLI
+# ----------------------------------------------------------------------
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Generate a PDF report from a YOLO run directory.")
+    parser.add_argument("--run_dir", required=True, help="Path to the YOLO run directory")
+    parser.add_argument("--output", default="report.pdf", help="Output PDF path (must end in .pdf)")
+    parser.add_argument("--title", default="YOLO Training Report", help="Report title")
+    args = parser.parse_args()
+
+    generate_report(args.run_dir, args.output, args.title)
