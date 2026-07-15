@@ -55,3 +55,26 @@ from reportlab.platypus import (
 )
 
 
+# ----------------------------------------------------------------------
+# Subfolder names | edit here if your folder names ever change
+# ----------------------------------------------------------------------
+
+SUBFOLDER_BOX_CURVES = "Box Metrices Curves"
+SUBFOLDER_CONFUSION_MATRIX = "Confusion Matrix"
+SUBFOLDER_TEST_PREDICTIONS = "Test Outputs Predictions"
+SUBFOLDER_TRAIN_BATCHES = "Train Batches"
+SUBFOLDER_VAL_BATCHES = "Val Batches"
+
+
+# ----------------------------------------------------------------------
+# Helpers
+# ----------------------------------------------------------------------
+
+def load_args(run_dir):
+    path = os.path.join(run_dir, "args.yaml")
+    if not os.path.exists(path):
+        return {}
+    with open(path, "r") as f:
+        return yaml.safe_load(f) or {}
+
+
