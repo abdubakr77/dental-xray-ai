@@ -322,3 +322,61 @@ def generate_report(run_dir, output_path, title="YOLO Training Report"):
 
     story.append(PageBreak())
 
+    # ---------------- 6. Test Set Predictions ----------------
+    story.append(Paragraph("Test Set Predictions", styles["SectionHeader"]))
+    story.append(Paragraph(
+        "Qualitative predictions on held-out images not used in train/val "
+        "(disease-only annotated images kept aside for visual inspection).",
+        styles["SubText"]))
+    story.append(Spacer(1, 8))
+
+    all_pngs = find_all(run_dir, SUBFOLDER_TEST_PREDICTIONS, ["train_*.png", "train_*.jpg"])
+    test_pred_files = [
+        f for f in all_pngs
+        if "_full_output" in os.path.basename(f) or re.search(r"train_\d+_\d+_", os.path.basename(f))
+    ]
+
+    if test_pred_files:
+        grouped = parse_test_prediction_files(test_pred_files)
+
+        def sort_key(base_id):
+            m = re.search(r"\d+", base_id)
+            return int(m.group()) if m else 0
+
+        for base_id in sorted(grouped.keys(), key=sort_key):
+            entry = grouped[base_id]
+            story.append(Paragraph(f"Image: {base_id}", styles["ImageID"]))
+
+            if entry["full"]:
+                img = img_flowable(entry["full"], max_width=page_width, max_height=9 * cm)
+                if img:
+                    story.append(img)
+                    story.append(Paragraph("Full pipeline output", styles["Caption"]))
+
+            if entry["quadrants"]:
+                story.append(Paragraph("Quadrant-level predictions:", styles["SubText"]))
+                row = []
+                pending_rows = []
+                for idx, quad_name, path in entry["quadrants"]:
+                    cell_img = img_flowable(path, max_width=page_width / 2 - 0.5 * cm, max_height=6 * cm)
+                    row.append([cell_img, Paragraph(quad_name, styles["Caption"])] if cell_img else [Paragraph("Missing image", styles["Caption"])])
+                    if len(row) == 2:
+                        pending_rows.append(row)
+                        row = []
+                if row:
+                    pending_rows.append(row)
+
+                for pair in pending_rows:
+                    t = Table([pair], colWidths=[page_width / 2] * len(pair))
+                    t.setStyle(TableStyle([
+                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ]))
+                    story.append(t)
+
+            story.append(Spacer(1, 14))
+    else:
+        story.append(Paragraph("No test prediction images found in run directory.", styles["SubText"]))
+
+    story.append(PageBreak())
+
