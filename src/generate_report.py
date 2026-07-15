@@ -107,3 +107,12 @@ def find_all(run_dir, subfolder, patterns, limit=None):
     return files
 
 
+def safe_metric(row, col_candidates, fmt="{:.4f}"):
+    for col in col_candidates:
+        if col in row.index:
+            try:
+                return fmt.format(row[col])
+            except Exception:
+                return str(row[col])
+    return "N/A"
+
