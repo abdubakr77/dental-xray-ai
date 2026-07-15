@@ -296,3 +296,29 @@ def generate_report(run_dir, output_path, title="YOLO Training Report"):
 
     story.append(PageBreak())
 
+    # ---------------- 5. Train / Val Batches ----------------
+    story.append(Paragraph("Sample Training Batches", styles["SectionHeader"]))
+    train_batches = find_all(run_dir, SUBFOLDER_TRAIN_BATCHES,
+                              ["train_batch*.jpg", "train_batch*.png"], limit=2)
+    for path in train_batches:
+        img = img_flowable(path, max_width=page_width, max_height=9 * cm)
+        if img:
+            story.append(img)
+            story.append(Paragraph(os.path.basename(path), styles["Caption"]))
+    if not train_batches:
+        story.append(Paragraph("No train batch samples found.", styles["SubText"]))
+
+    story.append(Spacer(1, 10))
+    story.append(Paragraph("Sample Validation Batches", styles["SectionHeader"]))
+    val_batches = find_all(run_dir, SUBFOLDER_VAL_BATCHES,
+                            ["val_batch*_pred.jpg", "val_batch*_pred.png"], limit=2)
+    for path in val_batches:
+        img = img_flowable(path, max_width=page_width, max_height=9 * cm)
+        if img:
+            story.append(img)
+            story.append(Paragraph(os.path.basename(path), styles["Caption"]))
+    if not val_batches:
+        story.append(Paragraph("No validation batch samples found.", styles["SubText"]))
+
+    story.append(PageBreak())
+
