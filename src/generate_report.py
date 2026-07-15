@@ -1,0 +1,57 @@
+"""
+generate_report.py
+-------------------
+Builds a PDF training report from a YOLO (Ultralytics) run directory that has
+the following subfolder layout (as in the user's project):
+
+    run_dir/
+        args.yaml
+        results.csv
+        results.png
+        weights/
+            best.pt
+            last.pt
+        Box Metrices Curves/
+            BoxF1_curve.png
+            BoxP_curve.png
+            BoxPR_curve.png
+            BoxR_curve.png
+        Confusion Matrix/
+            confusion_matrix.png
+            confusion_matrix_normalized.png
+        Test Outputs Predictions/
+            train_76_full_output.png
+            train_81_0_Upper Right.png
+            train_81_1_Lower Right.png
+            ...
+        Train Batches/
+            train_batch0.jpg
+            train_batch1.jpg
+            ...
+        Val Batches/
+            val_batch0_labels.jpg
+            val_batch0_pred.jpg
+            ...
+
+Usage:
+    python generate_report.py --run_dir "Runs/Stage 1" --output "Runs/Stage1_Report.pdf" --title "Stage 1 - Quadrant Detector"
+"""
+
+import os
+import re
+import glob
+import argparse
+import yaml
+import pandas as pd
+from collections import defaultdict
+
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import cm
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Spacer, PageBreak,
+    Table, TableStyle, Image as RLImage
+)
+
+
