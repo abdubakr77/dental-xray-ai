@@ -168,3 +168,29 @@ def parse_test_prediction_files(files):
     return grouped
 
 
+# ----------------------------------------------------------------------
+# Report builder
+# ----------------------------------------------------------------------
+
+def generate_report(run_dir, output_path, title="YOLO Training Report"):
+
+    if not output_path.lower().endswith(".pdf"):
+        raise ValueError(f"output_path must end with '.pdf', got: {output_path}")
+
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(name="SectionHeader", fontSize=15, spaceBefore=18,
+                               spaceAfter=8, textColor=colors.HexColor("#1a1a1a"),
+                               fontName="Helvetica-Bold"))
+    styles.add(ParagraphStyle(name="SubText", fontSize=9.5, textColor=colors.HexColor("#555555")))
+    styles.add(ParagraphStyle(name="Caption", fontSize=8.5, textColor=colors.HexColor("#666666"),
+                               spaceAfter=10, alignment=1))
+    styles.add(ParagraphStyle(name="ImageID", fontSize=11, spaceBefore=10, spaceAfter=4,
+                               fontName="Helvetica-Bold"))
+
+    story = []
+    page_width = A4[0] - 2 * 2 * cm
+
+    story.append(Paragraph(title, styles["Title"]))
+    story.append(Paragraph(f"Run directory: {run_dir}", styles["SubText"]))
+    story.append(Spacer(1, 16))
+
