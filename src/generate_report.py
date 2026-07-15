@@ -219,3 +219,49 @@ def generate_report(run_dir, output_path, title="YOLO Training Report"):
         story.append(table)
         story.append(Spacer(1, 10))
 
+    # ---------------- 2. Training Summary ----------------
+    results_df = load_results(run_dir)
+    if results_df is not None and len(results_df) > 0:
+        story.append(Paragraph("Training Summary", styles["SectionHeader"]))
+
+        map50_col_candidates = ["metrics/mAP50(B)", "metrics/mAP50"]
+        map5095_col_candidates = ["metrics/mAP50-95(B)", "metrics/mAP50-95"]
+        precision_col_candidates = ["metrics/precision(B)", "metrics/precision"]
+        recall_col_candidates = ["metrics/recall(B)", "metrics/recall"]
+
+        best_map_col = next((c for c in map50_col_candidates if c in results_df.columns), None)
+        best_row = results_df.loc[results_df[best_map_col].idxmax()] if best_map_col else results_df.iloc[-1]
+
+        total_epochs = int(results_df["epoch"].iloc[-1]) + 1 if "epoch" in results_df.columns else len(results_df)
+        best_epoch = int(best_row["epoch"]) + 1 if "epoch" in best_row.index else "N/A"
+
+        summary_rows = [
+            ["Metric", "Value"],
+            ["Total epochs run", str(total_epochs)],
+            ["Best epoch", str(best_epoch)],
+            ["mAP50 (best)", safe_metric(best_row, map50_col_candidates)],
+            ["mAP50-95 (best)", safe_metric(best_row, map5095_col_candidates)],
+            ["Precision (best)", safe_metric(best_row, precision_col_candidates)],
+            ["Recall (best)", safe_metric(best_row, recall_col_candidates)],
+        ]
+        table = Table(summary_rows, colWidths=[6 * cm, 8 * cm])
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2b2b2b")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 9),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f2f2f2")]),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#cccccc")),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ]))
+        story.append(table)
+        story.append(Spacer(1, 10))
+
+        img = img_flowable(os.path.join(run_dir, "results.png"), max_width=page_width, max_height=9 * cm)
+        if img:
+            story.append(img)
+            story.append(Paragraph("Figure: loss and metric curves over training epochs.", styles["Caption"]))
+
+    story.append(PageBreak())
+
