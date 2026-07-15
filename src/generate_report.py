@@ -87,3 +87,12 @@ def load_results(run_dir):
     return df
 
 
+def find_first(run_dir, subfolder, filenames):
+    """Return the first existing file (exact filename match) inside run_dir/subfolder."""
+    for name in filenames:
+        path = os.path.join(run_dir, subfolder, name) if subfolder else os.path.join(run_dir, name)
+        if os.path.exists(path):
+            return path
+    return None
+
+
