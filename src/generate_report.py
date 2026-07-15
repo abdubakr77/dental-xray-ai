@@ -380,3 +380,37 @@ def generate_report(run_dir, output_path, title="YOLO Training Report"):
 
     story.append(PageBreak())
 
+    # ---------------- 7. Artifacts ----------------
+    story.append(Paragraph("Model Artifacts", styles["SectionHeader"]))
+    weights_dir = os.path.join(run_dir, "weights")
+    best_pt = os.path.join(weights_dir, "best.pt")
+    last_pt = os.path.join(weights_dir, "last.pt")
+
+    artifact_rows = [["File", "Exists", "Size (MB)"]]
+    for label, path in [("best.pt", best_pt), ("last.pt", last_pt)]:
+        exists = os.path.exists(path)
+        size_mb = f"{os.path.getsize(path) / (1024*1024):.1f}" if exists else "-"
+        artifact_rows.append([label, "Yes" if exists else "No", size_mb])
+
+    table = Table(artifact_rows, colWidths=[5 * cm, 4 * cm, 4 * cm])
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2b2b2b")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#cccccc")),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+    ]))
+    story.append(table)
+
+    doc = SimpleDocTemplate(
+        output_path, pagesize=A4,
+        leftMargin=2 * cm, rightMargin=2 * cm,
+        topMargin=1.5 * cm, bottomMargin=1.5 * cm,
+        title=title,
+    )
+    doc.build(story)
+    print(f"Report saved to: {output_path}")
+
+
