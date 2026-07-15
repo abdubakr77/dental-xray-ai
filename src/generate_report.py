@@ -116,3 +116,20 @@ def safe_metric(row, col_candidates, fmt="{:.4f}"):
                 return str(row[col])
     return "N/A"
 
+
+def img_flowable(path, max_width, max_height=None):
+    if not path or not os.path.exists(path):
+        return None
+    from PIL import Image as PILImage
+    with PILImage.open(path) as im:
+        w, h = im.size
+    ratio = max_width / float(w)
+    new_w = max_width
+    new_h = h * ratio
+    if max_height and new_h > max_height:
+        ratio = max_height / float(h)
+        new_h = max_height
+        new_w = w * ratio
+    return RLImage(path, width=new_w, height=new_h)
+
+
