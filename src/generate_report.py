@@ -96,3 +96,14 @@ def find_first(run_dir, subfolder, filenames):
     return None
 
 
+def find_all(run_dir, subfolder, patterns, limit=None):
+    """Glob patterns inside run_dir/subfolder."""
+    base = os.path.join(run_dir, subfolder) if subfolder else run_dir
+    files = []
+    for pattern in patterns:
+        files.extend(sorted(glob.glob(os.path.join(base, pattern))))
+    if limit:
+        files = files[:limit]
+    return files
+
+
