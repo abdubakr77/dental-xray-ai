@@ -355,7 +355,7 @@ def augment_and_save(image, bboxes, class_labels, n_copies, base_filename, outpu
 
 
 
-def apply_smart_aug(data_yaml,apply_debug=False):
+def apply_smart_aug(data_yaml,aug_config,apply_debug=False):
 
     imgs_path = data_yaml['train']
     labels_path = data_yaml['train'].replace('images','labels')
@@ -390,6 +390,7 @@ def apply_smart_aug(data_yaml,apply_debug=False):
                         base_filename=rand_fname,
                         output_images=imgs_path,
                         output_labels=labels_path,
+                        aug_config=aug_config,
                         debugging=True)
 
     else:
@@ -415,4 +416,5 @@ def apply_smart_aug(data_yaml,apply_debug=False):
                             n_copies=n,
                             base_filename=fname,
                             output_images=imgs_path,
-                            output_labels=labels_path,)
+                            output_labels=labels_path,
+                            aug_config= aug_config)
