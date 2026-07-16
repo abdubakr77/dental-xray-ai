@@ -333,18 +333,12 @@ def build_transform(img_h, img_w, config):
 
 
 
-def augment_and_save(image, bboxes, class_labels, n_copies, base_filename, output_images, output_labels, debugging=False):
-    for n in range(n_copies):
-        img_h, img_w = image.shape[:2]
-        aspect = img_w / img_h
-        transform = A.Compose([
-            A.Rotate(limit=4, p=0.4),
-            A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.35),
-            A.CenterCrop(height=int(img_h * 0.90), width=int(img_w * 0.90)),
-            A.CLAHE(clip_limit=2.0, p=0.5),
-            A.RandomResizedCrop(size=(img_h, img_w), scale=(0.4, 0.7), ratio=(aspect * 0.95, aspect * 1.05), p=0.7),
-        ], bbox_params=A.BboxParams(format='yolo', label_fields=['class_labels'], min_visibility=0.65))
+def augment_and_save(image, bboxes, class_labels, n_copies, base_filename, output_images, output_labels,
+                      aug_config, debugging=False):
+    img_h, img_w = image.shape[:2]
+    transform = build_transform(img_h, img_w, aug_config)
 
+    for n in range(n_copies):
         augmented = transform(image=image, bboxes=bboxes, class_labels=class_labels)
         new_img = augmented['image']
         new_bboxes = augmented['bboxes']
