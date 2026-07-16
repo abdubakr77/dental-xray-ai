@@ -362,7 +362,7 @@ def apply_smart_aug(data_yaml,aug_config,apply_debug=False):
     
     all_files_no_ext = [item.split('.')[0] for item in os.listdir(imgs_path)]
 
-    if 'aug' in all_files_no_ext:
+    if 'aug' in ', '.join(all_files_no_ext):
         print(f"Warning: Found {all_files_no_ext.count('aug')} images are already augmented!")
         if input(f'Do you want to delete all {all_files_no_ext.count('aug')} augmented images before processing on the images? - (y or n): ').lower().strip() == 'y':
             
