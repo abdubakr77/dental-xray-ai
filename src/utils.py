@@ -312,17 +312,17 @@ def read_image_and_label(filename_no_ext,data_yaml):
 def build_transform(img_h, img_w, config):
     aspect = img_w / img_h
     return A.Compose([
+        A.CLAHE(clip_limit=config['clahe_clip_limit'], p=config['clahe_p']),
         A.Rotate(limit=config['rotate_limit'], p=config['rotate_p']),
         A.RandomBrightnessContrast(
             brightness_limit=config['brightness_limit'],
             contrast_limit=config['contrast_limit'],
             p=config['brightness_contrast_p']
         ),
-        A.CenterCrop(
-            height=int(img_h * config['center_crop_ratio']),
-            width=int(img_w * config['center_crop_ratio'])
-        ),
-        A.CLAHE(clip_limit=config['clahe_clip_limit'], p=config['clahe_p']),
+        # A.CenterCrop(
+        #     height=int(img_h * config['center_crop_ratio']),
+        #     width=int(img_w * config['center_crop_ratio'])
+        # ),
         A.RandomResizedCrop(
             size=(img_h, img_w),
             scale=config['resized_crop_scale'],
