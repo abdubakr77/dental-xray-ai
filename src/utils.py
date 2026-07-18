@@ -377,23 +377,32 @@ def apply_smart_aug(data_yaml,aug_config,apply_debug=False):
                         debugging=True)
 
     else:
-        if 'aug' in ', '.join(all_files_no_ext):
-            print(f"Warning: Found {all_files_no_ext.count('aug')} images are already augmented!")
-            if input(f'Do you want to delete all {all_files_no_ext.count('aug')} augmented images before processing on the images? - (y or n): ').lower().strip() == 'y':
-                
-                for fname in all_files_no_ext:
-                    if fname.count('aug') >= 1:
-                        img_path = os.path.join(imgs_path, fname+'.png')
-                        label_path = os.path.join(labels_path, fname+'.txt')
-                        try:
-                            os.remove(img_path)
-                            os.remove(label_path)
-                        except:
-                            print(f"Failed to remove {img_path}!")
-                            pass
-                        print(f'{fname} deleted!')
-                
-                clear_output()
+        aug_files = [f for f in all_files_no_ext if 'aug' in f]
+        n_aug = len(aug_files)
+
+        if n_aug > 0:
+            print(f"Warning: Found {n_aug} images are already augmented!")
+            confirm = input(f'Do you want to delete all {n_aug} augmented images before processing? - (y or n): ').lower().strip()
+
+            if confirm == 'y':
+                deleted_count = 0
+                failed_count = 0
+
+                for fname in aug_files:
+                    img_path = os.path.join(imgs_path, fname + '.png')
+                    label_path = os.path.join(labels_path, fname + '.txt')
+                    try:
+                        os.remove(img_path)
+                        os.remove(label_path)
+                        deleted_count += 1
+                    except Exception as e:
+                        print(f"Failed to remove {fname}: {e}")
+                        failed_count += 1
+
+                # clear_output()
+                print(f"Deleted {deleted_count} augmented images. Failed: {failed_count}.")
+                print("Check the failed deletetion if found and Re-Run the function Please.")
+                return
 
         
         for fname in tqdm(all_files_no_ext,desc=f'Augmenting Images Now...'):
