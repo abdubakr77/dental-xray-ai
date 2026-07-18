@@ -319,10 +319,10 @@ def build_transform(img_h, img_w, config):
             contrast_limit=config['contrast_limit'],
             p=config['brightness_contrast_p']
         ),
-        # A.CenterCrop(
-        #     height=int(img_h * config['center_crop_ratio']),
-        #     width=int(img_w * config['center_crop_ratio'])
-        # ),
+        A.CenterCrop(
+            height=int(img_h * config['center_crop_ratio']),
+            width=int(img_w * config['center_crop_ratio'])
+        ),
         A.RandomResizedCrop(
             size=(img_h, img_w),
             scale=config['resized_crop_scale'],
@@ -389,6 +389,7 @@ def apply_smart_aug(data_yaml,aug_config,apply_debug=False):
                             os.remove(img_path)
                             os.remove(label_path)
                         except:
+                            print(f"Failed to remove {img_path}!")
                             pass
                         print(f'{fname} deleted!')
                 
@@ -401,6 +402,15 @@ def apply_smart_aug(data_yaml,aug_config,apply_debug=False):
 
             if 'Upper Right' in data_yaml['names']:
                 n=3
+            elif 'Tooth' in data_yaml['names']:
+                n_teeth = len(bboxes)
+
+                if n_teeth >= 7:
+                    n = 6
+                elif n_teeth >= 4:
+                    n = 4
+                else:
+                    n = 2
             elif 'caries' in data_yaml['names']:
                 if 2 in class_labels:
                     n = 10
