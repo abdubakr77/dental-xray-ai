@@ -376,8 +376,10 @@ def augment_and_save(image, bboxes, class_labels, n_copies, base_filename, outpu
             augmented = transform(image=image)
             new_img = augmented['image']
             new_filename = f"{base_filename}_aug{n}"
-
-            cv2.imwrite(os.path.join(output_images, f"{new_filename}.png"), new_img)
+            if debugging:
+                visualize_augmentation(new_img, None, None, title=new_filename)
+            else:
+                cv2.imwrite(os.path.join(output_images, f"{new_filename}.png"), new_img)
 
 
 def apply_smart_aug(data_yaml,aug_config,apply_debug=False):
