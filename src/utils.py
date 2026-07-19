@@ -510,7 +510,7 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
                                     class_labels=None,
                                     n_copies=n,
                                     base_filename=fname,
-                                    output_images=os.path.join(main_images_path,fol_class,fname),
+                                    output_images=os.path.join(main_images_path,fol_class),
                                     output_labels=None,
                                     aug_config= aug_config, is_disease=True)
                     
