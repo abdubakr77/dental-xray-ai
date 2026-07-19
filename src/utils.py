@@ -423,7 +423,7 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
         if is_disease:
             rand_class = np.random.choice(disease_images_per_class.keys())
             rand_fname = np.random.choice(disease_images_per_class[rand_class])
-            image = read_image_and_label(os.path.join(disease_images_per_class[rand_class],rand_fname),data_yaml)
+            image = read_image_and_label(os.path.join(rand_class,rand_fname),data_yaml)
             augment_and_save(image=image,
                             bboxes=None,
                             class_labels=None,
@@ -432,7 +432,7 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
                             output_images=None,
                             output_labels=None,
                             aug_config=aug_config,
-                            debugging=True)
+                            debugging=True,is_disease=True)
         else:
             rand_fname = np.random.choice(all_files_no_ext)
             image,bboxes,class_labels = read_image_and_label(rand_fname,data_yaml)
@@ -441,8 +441,8 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
                             class_labels=class_labels,
                             n_copies=3,
                             base_filename=rand_fname,
-                            output_images=main_images_path,
-                            output_labels=labels_path,
+                            output_images=None,
+                            output_labels=None,
                             aug_config=aug_config,
                             debugging=True)
 
@@ -473,22 +473,50 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
                 print("Check the failed deletetion if found and Re-Run the function Please.")
                 return
 
-      
+
+        if is_disease:
+            for fol_class in disease_images_per_class.keys():
+                class_label = int(fol_class[0])
+
+                if class_label == 4 : continue
+
+                for fname in tqdm(disease_images_per_class[fol_class],desc=f'Augmenting {diagnosis_map[int(fol_class[0])]} Images Now...'):
+                    image = read_image_and_label(os.path.join(fol_class,fname),data_yaml)
+
+
+                    if class_label == 2:
+                        n = 15
+                    elif class_label == 0 or class_label == 3:
+                        n = 4
+                    else:
+                        n = 1
+
+                        
+                    augment_and_save(image=image,
+                                    bboxes=None,
+                                    class_labels=None,
+                                    n_copies=n,
+                                    base_filename=fname,
+                                    output_images=os.path.join(main_images_path,fol_class,fname),
+                                    output_labels=None,
+                                    aug_config= aug_config, is_disease=True)
+                
         for fname in tqdm(all_files_no_ext,desc=f'Augmenting Images Now...'):
 
             image,bboxes,class_labels = read_image_and_label(fname,data_yaml)
 
             if 'Upper Right' in data_yaml['names']:
                 n=3
+
             elif 'Tooth' in data_yaml['names']:
                 n_teeth = len(bboxes)
-
                 if n_teeth >= 7:
                     n = 6
                 elif n_teeth >= 4:
                     n = 4
                 else:
                     n = 2
+            
             elif 'caries' in data_yaml['names']:
                 if 2 in class_labels:
                     n = 10
@@ -496,8 +524,6 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
                     n = 3
                 else:
                     n = 1
-            else:
-                n=4
                 
             augment_and_save(image=image,
                             bboxes=bboxes,
