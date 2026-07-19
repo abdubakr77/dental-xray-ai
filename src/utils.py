@@ -461,6 +461,7 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
 
     else:
         n_aug = len(aug_files)
+        print(n_aug)
         if n_aug > 0:
             print(f"Warning: Found {n_aug} images are already augmented!")
             confirm = input(f'Do you want to delete all {n_aug} augmented images before processing? - (y or n): ').lower().strip()
@@ -502,6 +503,8 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
                     elif class_label == 0 or class_label == 3:
                         n = 4
                     else:
+                        # Random skip
+                        if np.random.choice([0,1]): continue
                         n = 1
 
                         
