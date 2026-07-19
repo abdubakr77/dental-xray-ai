@@ -3,4 +3,4 @@ val: 'C:\Users\ibrah.HIMA\OneDrive\Desktop\Full AI\Projects\GitHub - Kaggle Proj
 test: 'C:\Users\ibrah.HIMA\OneDrive\Desktop\Full AI\Projects\GitHub - Kaggle Projects\dental-xray-ai\Data\Processed\Stage 3 (Disease Classifier)\test\'
 
 nc: 5
-names: ['Impacted','Caries','Periapical','Deep_Caries','No_Disease']
+names: ['Impacted','Caries','Periapical','Deep Caries','No Disease']
