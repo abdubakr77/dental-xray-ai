@@ -291,11 +291,13 @@ def prepare_disease_classifier(images_path,output_root,train_df,valid_df,test_df
 def read_image_and_label(filename_no_ext,data_yaml):
     
     img_path = os.path.join(data_yaml['train'], filename_no_ext + ".png")
-    label_path = os.path.join(data_yaml['train'].replace('images','labels'), filename_no_ext + ".txt")
-
     image = cv2.imread(img_path)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     
+    if 'Caries' in data_yaml['names']:
+        return image
+    
+    label_path = os.path.join(data_yaml['train'].replace('images','labels'), filename_no_ext + ".txt")
     bboxes = []
     class_labels = []
     
@@ -386,40 +388,56 @@ def augment_and_save(image, bboxes, class_labels, n_copies, base_filename, outpu
 
 def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
 
-    if is_disease:
-        imgs_path = {}
+    main_images_path = data_yaml['train']
 
-        all_fol_classes = os.listdir(data_yaml['train'])
+    if is_disease:
+        disease_images_per_class = {}
+
+        all_fol_classes = os.listdir(main_images_path)
 
         for fol_class in all_fol_classes:
-            fol_class_path = os.path.join(data_yaml['train'],fol_class)
+            fol_class_path = os.path.join(main_images_path,fol_class)
             all_files_no_ext = [item.split('.')[0] for item in os.listdir(fol_class_path)]
 
-            imgs_path[fol_class] = os.listdir(fol_class_path)
+            disease_images_per_class[fol_class] = os.listdir(fol_class_path)
             aug_files = [os.path.join(fol_class_path, f + '.png') for f in all_files_no_ext if 'aug' in f]
     else:
 
-        imgs_path = data_yaml['train']
-        labels_path = data_yaml['train'].replace('images','labels')
+        labels_path = main_images_path.replace('images','labels')
     
-        all_files_no_ext = [item.split('.')[0] for item in os.listdir(imgs_path)]
+        all_files_no_ext = [item.split('.')[0] for item in os.listdir(main_images_path)]
 
-        aug_files = [os.path.join(imgs_path, f + '.png') for f in all_files_no_ext if 'aug' in f]
+        aug_files = [os.path.join(main_images_path, f + '.png') for f in all_files_no_ext if 'aug' in f]
         
 
         
     if apply_debug:
-        rand_fname = np.random.choice(all_files_no_ext)
-        image,bboxes,class_labels = read_image_and_label(rand_fname,data_yaml)
-        augment_and_save(image=image,
-                        bboxes=bboxes,
-                        class_labels=class_labels,
-                        n_copies=3,
-                        base_filename=rand_fname,
-                        output_images=imgs_path,
-                        output_labels=labels_path,
-                        aug_config=aug_config,
-                        debugging=True)
+        
+        if is_disease:
+            rand_class = np.random.choice(disease_images_per_class.keys())
+            rand_fname = np.random.choice(disease_images_per_class[rand_class])
+            image = read_image_and_label(os.path.join(disease_images_per_class[rand_class],rand_fname),data_yaml)
+            augment_and_save(image=image,
+                            bboxes=None,
+                            class_labels=None,
+                            n_copies=3,
+                            base_filename=rand_fname,
+                            output_images=None,
+                            output_labels=None,
+                            aug_config=aug_config,
+                            debugging=True)
+        else:
+            rand_fname = np.random.choice(all_files_no_ext)
+            image,bboxes,class_labels = read_image_and_label(rand_fname,data_yaml)
+            augment_and_save(image=image,
+                            bboxes=bboxes,
+                            class_labels=class_labels,
+                            n_copies=3,
+                            base_filename=rand_fname,
+                            output_images=main_images_path,
+                            output_labels=labels_path,
+                            aug_config=aug_config,
+                            debugging=True)
 
     else:
         n_aug = len(aug_files)
@@ -479,7 +497,7 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
                             class_labels=class_labels,
                             n_copies=n,
                             base_filename=fname,
-                            output_images=imgs_path,
+                            output_images=main_images_path,
                             output_labels=labels_path,
                             aug_config= aug_config)
 
