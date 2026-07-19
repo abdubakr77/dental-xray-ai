@@ -228,6 +228,8 @@ def prepare_disease_classifier(images_path,output_root,train_df,valid_df,test_df
     
 
     for name,df in ds_partitions.items():
+        if df is None:
+            continue
         for fname in tqdm(df['File_Name'].unique().tolist(),f'{name} Is Processing Now...'):
 
             filtered_df = df[df['File_Name'] == fname]
@@ -384,9 +386,6 @@ def augment_and_save(image, bboxes, class_labels, n_copies, base_filename, outpu
 
 def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
 
-    if is_disease:
-        
-    
     imgs_path = data_yaml['train']
     labels_path = data_yaml['train'].replace('images','labels')
     
