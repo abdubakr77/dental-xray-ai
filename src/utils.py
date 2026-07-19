@@ -309,45 +309,48 @@ def read_image_and_label(filename_no_ext,data_yaml):
     return image, bboxes, class_labels
 
 
-def build_transform(img_h, img_w, config):
-    aspect = img_w / img_h
-    return A.Compose([
-        A.CLAHE(clip_limit=config['clahe_clip_limit'], p=config['clahe_p']),
-        A.Rotate(limit=config['rotate_limit'], p=config['rotate_p']),
-        A.RandomBrightnessContrast(
-            brightness_limit=config['brightness_limit'],
-            contrast_limit=config['contrast_limit'],
-            p=config['brightness_contrast_p']
-        ),
-        A.CenterCrop(
-            height=int(img_h * config['center_crop_ratio']),
-            width=int(img_w * config['center_crop_ratio'])
-        ),
-        A.RandomResizedCrop(
-            size=(img_h, img_w),
-            scale=config['resized_crop_scale'],
-            ratio=(aspect * config['ratio_margin_low'], aspect * config['ratio_margin_high']),
-            p=config['resized_crop_p']
-        ),
-    ], bbox_params=A.BboxParams(format='yolo', label_fields=['class_labels'], min_visibility=config['min_visibility']))
+def build_transform(img_h, img_w, config, is_disease=False):
+    if not is_disease:
+        aspect = img_w / img_h
+        return A.Compose([
+            A.CLAHE(clip_limit=config['clahe_clip_limit'], p=config['clahe_p']),
+            A.Rotate(limit=config['rotate_limit'], p=config['rotate_p']),
+            A.RandomBrightnessContrast(
+                brightness_limit=config['brightness_limit'],
+                contrast_limit=config['contrast_limit'],
+                p=config['brightness_contrast_p']
+            ),
+            A.CenterCrop(
+                height=int(img_h * config['center_crop_ratio']),
+                width=int(img_w * config['center_crop_ratio'])
+            ),
+            A.RandomResizedCrop(
+                size=(img_h, img_w),
+                scale=config['resized_crop_scale'],
+                ratio=(aspect * config['ratio_margin_low'], aspect * config['ratio_margin_high']),
+                p=config['resized_crop_p']
+            ),
+        ], bbox_params=A.BboxParams(format='yolo', label_fields=['class_labels'], min_visibility=config['min_visibility']))
+    
+    else:
+        return A.Compose([
+            A.CLAHE(clip_limit=config['clahe_clip_limit'], p=config['clahe_p']),
+            A.Rotate(limit=config['rotate_limit'], p=config['rotate_p']),
+            A.RandomBrightnessContrast(
+                brightness_limit=config['brightness_limit'],
+                contrast_limit=config['contrast_limit'],
+                p=config['brightness_contrast_p']
+            ),
+            A.GaussNoise(
+                var_limit=config['gauss_noise_var'],
+                p=config['gauss_noise_p']
+            ),
+        ])
 
-def build_disease_transform(config):
-    return A.Compose([
-        A.CLAHE(clip_limit=config['clahe_clip_limit'], p=config['clahe_p']),
-        A.Rotate(limit=config['rotate_limit'], p=config['rotate_p']),
-        A.RandomBrightnessContrast(
-            brightness_limit=config['brightness_limit'],
-            contrast_limit=config['contrast_limit'],
-            p=config['brightness_contrast_p']
-        ),
-        A.GaussNoise(
-            var_limit=config['gauss_noise_var'],
-            p=config['gauss_noise_p']
-        ),
-    ])
 
 def augment_and_save(image, bboxes, class_labels, n_copies, base_filename, output_images, output_labels,
                       aug_config, debugging=False):
+    
     img_h, img_w = image.shape[:2]
     transform = build_transform(img_h, img_w, aug_config)
 
