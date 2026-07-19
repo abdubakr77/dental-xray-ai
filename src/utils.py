@@ -513,39 +513,40 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
                                     output_images=os.path.join(main_images_path,fol_class,fname),
                                     output_labels=None,
                                     aug_config= aug_config, is_disease=True)
+                    
+        else:
+            for fname in tqdm(all_files_no_ext,desc=f'Augmenting Images Now...'):
+
+                image,bboxes,class_labels = read_image_and_label(fname,data_yaml)
+
+                if 'Upper Right' in data_yaml['names']:
+                    n=3
+
+                elif 'Tooth' in data_yaml['names']:
+                    n_teeth = len(bboxes)
+                    if n_teeth >= 7:
+                        n = 6
+                    elif n_teeth >= 4:
+                        n = 4
+                    else:
+                        n = 2
                 
-        for fname in tqdm(all_files_no_ext,desc=f'Augmenting Images Now...'):
-
-            image,bboxes,class_labels = read_image_and_label(fname,data_yaml)
-
-            if 'Upper Right' in data_yaml['names']:
-                n=3
-
-            elif 'Tooth' in data_yaml['names']:
-                n_teeth = len(bboxes)
-                if n_teeth >= 7:
-                    n = 6
-                elif n_teeth >= 4:
-                    n = 4
-                else:
-                    n = 2
-            
-            elif 'caries' in data_yaml['names']:
-                if 2 in class_labels:
-                    n = 10
-                elif 0 in class_labels or 3 in  class_labels:
-                    n = 3
-                else:
-                    n = 1
-                
-            augment_and_save(image=image,
-                            bboxes=bboxes,
-                            class_labels=class_labels,
-                            n_copies=n,
-                            base_filename=fname,
-                            output_images=main_images_path,
-                            output_labels=labels_path,
-                            aug_config= aug_config)
+                elif 'caries' in data_yaml['names']:
+                    if 2 in class_labels:
+                        n = 10
+                    elif 0 in class_labels or 3 in  class_labels:
+                        n = 3
+                    else:
+                        n = 1
+                    
+                augment_and_save(image=image,
+                                bboxes=bboxes,
+                                class_labels=class_labels,
+                                n_copies=n,
+                                base_filename=fname,
+                                output_images=main_images_path,
+                                output_labels=labels_path,
+                                aug_config= aug_config)
 
 
 
