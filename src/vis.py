@@ -71,20 +71,22 @@ def show_image_boxes(df,images_path,target:list = None):
 
 
 def visualize_augmentation(image, bboxes, class_labels, title="Augmented"):
-    img_h, img_w = image.shape[:2]
+
     fig, ax = plt.subplots(1, figsize=(15, 8))
     ax.imshow(image, cmap="gray")
 
-    for cls_id, (cx, cy, w, h) in zip(class_labels, bboxes):
-        x = (cx - w / 2) * img_w
-        y = (cy - h / 2) * img_h
-        box_w = w * img_w
-        box_h = h * img_h
+    if bboxes and class_labels:
+        img_h, img_w = image.shape[:2]
+        for cls_id, (cx, cy, w, h) in zip(class_labels, bboxes):
+            x = (cx - w / 2) * img_w
+            y = (cy - h / 2) * img_h
+            box_w = w * img_w
+            box_h = h * img_h
 
-        rect = patches.Rectangle((x, y), box_w, box_h, linewidth=1.5, edgecolor='red', facecolor='none')
-        ax.add_patch(rect)
-        ax.text(x, y - 5, str(cls_id), color='red', fontsize=9,
-                 bbox=dict(facecolor='black', alpha=0.5, pad=0.5))
+            rect = patches.Rectangle((x, y), box_w, box_h, linewidth=1.5, edgecolor='red', facecolor='none')
+            ax.add_patch(rect)
+            ax.text(x, y - 5, str(cls_id), color='red', fontsize=9,
+                    bbox=dict(facecolor='black', alpha=0.5, pad=0.5))
 
     ax.set_title(title)
     plt.show()
