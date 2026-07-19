@@ -381,7 +381,7 @@ def augment_and_save(image, bboxes, class_labels, n_copies, base_filename, outpu
             all_filenames.append(new_filename)
         
         if debugging:
-            visualize_augmentation(new_img, new_bboxes, new_labels, titles=new_filename)
+            visualize_augmentation(all_images, all_bboxes, all_labels, titles=all_filenames)
         else:
             for new_img,new_bboxes,new_labels,new_filename in zip(all_images,all_bboxes,all_labels,all_filenames):
                 cv2.imwrite(os.path.join(output_images, f"{new_filename}.png"), new_img)
@@ -400,7 +400,7 @@ def augment_and_save(image, bboxes, class_labels, n_copies, base_filename, outpu
             all_images.append(new_img) ; all_filenames.append(new_filename)
 
         if debugging:
-            visualize_augmentation(all_images, None, None, titles=new_filename)
+            visualize_augmentation(all_images, None, None, titles=all_filenames)
         else:
             for new_img,new_filename in zip(all_images,all_filenames):
                 cv2.imwrite(os.path.join(output_images, f"{new_filename}.png"), new_img)
