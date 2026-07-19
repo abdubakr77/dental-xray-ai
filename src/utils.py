@@ -414,13 +414,13 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
         disease_images_per_class = {}
 
         all_fol_classes = os.listdir(main_images_path)
-
+        aug_files=[]
         for fol_class in all_fol_classes:
             fol_class_path = os.path.join(main_images_path,fol_class)
             all_files_no_ext = [item.split('.')[0] for item in os.listdir(fol_class_path)]
 
             disease_images_per_class[fol_class] = all_files_no_ext
-            aug_files = [os.path.join(fol_class_path, f + '.png') for f in all_files_no_ext if 'aug' in f]
+            aug_files += [os.path.join(fol_class_path, f + '.png') for f in all_files_no_ext if 'aug' in f]
     else:
 
         labels_path = main_images_path.replace('images','labels')
@@ -461,7 +461,6 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
 
     else:
         n_aug = len(aug_files)
-        print(n_aug)
         if n_aug > 0:
             print(f"Warning: Found {n_aug} images are already augmented!")
             confirm = input(f'Do you want to delete all {n_aug} augmented images before processing? - (y or n): ').lower().strip()
@@ -470,7 +469,7 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
                 deleted_count = 0
                 failed_count = 0
 
-                for fpath in aug_files:
+                for fpath in tqdm(aug_files,'Removing All Augmented Images...'):
                     try:
                         os.remove(fpath)
 
