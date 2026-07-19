@@ -16,6 +16,13 @@ import numpy as np
 # pip install iterative-stratification
 from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit
 
+diagnosis_map = {
+    0: "impacted",
+    1: "caries",
+    2: "periapical",
+    3: "deep_caries"
+}
+
 def compute_iou(box1, box2):
     # Must boxes format are: [x, y, w, h]
     x1, y1, w1, h1 = box1
@@ -338,17 +345,17 @@ def build_transform(img_h, img_w, config, is_disease=False):
     
     else:
         return A.Compose([
-            A.CLAHE(clip_limit=config['clahe_clip_limit'], p=config['clahe_p']),
+            A.HorizontalFlip(p=config['hflip_p']),
+            A.VerticalFlip(p=config['vflip_p']),
             A.Rotate(limit=config['rotate_limit'], p=config['rotate_p']),
             A.RandomBrightnessContrast(
-                brightness_limit=config['brightness_limit'],
-                contrast_limit=config['contrast_limit'],
-                p=config['brightness_contrast_p']
+                brightness_limit=config.get('brightness_limit', 0.1),
+                contrast_limit=config.get('contrast_limit', 0.1),
+                p=config.get('brightness_contrast_p', 0.35)
             ),
-            A.GaussNoise(
-                var_limit=config['gauss_noise_var'],
-                p=config['gauss_noise_p']
-            ),
+            A.CLAHE(clip_limit=config.get('clahe_clip_limit', 2.0), p=config.get('clahe_p', 0.5)),
+            A.RandomScale(scale_limit=config['zoom_scale'], p=config['zoom_p']),
+            A.GaussNoise(var_limit=(5, 15), p=config['noise_p']),
         ])
 
 
@@ -466,7 +473,7 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
                 print("Check the failed deletetion if found and Re-Run the function Please.")
                 return
 
-        
+      
         for fname in tqdm(all_files_no_ext,desc=f'Augmenting Images Now...'):
 
             image,bboxes,class_labels = read_image_and_label(fname,data_yaml)
