@@ -355,7 +355,7 @@ def build_transform(img_h, img_w, config, is_disease=False):
             ),
             A.CLAHE(clip_limit=config.get('clahe_clip_limit', 2.0), p=config.get('clahe_p', 0.5)),
             A.RandomScale(scale_limit=config['zoom_scale'], p=config['zoom_p']),
-            A.GaussNoise(var_limit=(5, 15), p=config['noise_p']),
+            A.Blur(blur_limit=config.get('blur_var', (3, 5)), p=config.get('blur_p', 0.15)),
         ])
 
 
