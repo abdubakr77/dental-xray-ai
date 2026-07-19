@@ -382,8 +382,11 @@ def augment_and_save(image, bboxes, class_labels, n_copies, base_filename, outpu
                 cv2.imwrite(os.path.join(output_images, f"{new_filename}.png"), new_img)
 
 
-def apply_smart_aug(data_yaml,aug_config,apply_debug=False):
+def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
 
+    if is_disease:
+        
+    
     imgs_path = data_yaml['train']
     labels_path = data_yaml['train'].replace('images','labels')
     
