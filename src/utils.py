@@ -406,7 +406,7 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
             fol_class_path = os.path.join(main_images_path,fol_class)
             all_files_no_ext = [item.split('.')[0] for item in os.listdir(fol_class_path)]
 
-            disease_images_per_class[fol_class] = os.listdir(fol_class_path)
+            disease_images_per_class[fol_class] = all_files_no_ext
             aug_files = [os.path.join(fol_class_path, f + '.png') for f in all_files_no_ext if 'aug' in f]
     else:
 
@@ -417,11 +417,11 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
         aug_files = [os.path.join(main_images_path, f + '.png') for f in all_files_no_ext if 'aug' in f]
         
 
-        
+    # Debugging HERE
     if apply_debug:
         
         if is_disease:
-            rand_class = np.random.choice(disease_images_per_class.keys())
+            rand_class = np.random.choice(list(disease_images_per_class.keys()))
             rand_fname = np.random.choice(disease_images_per_class[rand_class])
             image = read_image_and_label(os.path.join(rand_class,rand_fname),data_yaml)
             augment_and_save(image=image,
@@ -475,7 +475,7 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
 
 
         if is_disease:
-            for fol_class in disease_images_per_class.keys():
+            for fol_class in list(disease_images_per_class.keys()):
                 class_label = int(fol_class[0])
 
                 if class_label == 4 : continue
