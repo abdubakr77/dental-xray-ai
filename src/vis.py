@@ -70,23 +70,36 @@ def show_image_boxes(df,images_path,target:list = None):
     ax.set_title(fname)
 
 
-def visualize_augmentation(image, bboxes, class_labels, title="Augmented"):
+def visualize_augmentation(images, bboxes_list=None, class_labels_list=None, titles=None):
+    n = len(images)
+    fig, axes = plt.subplots(1, n, figsize=(5 * n, 5))
 
-    fig, ax = plt.subplots(1, figsize=(15, 8))
-    ax.imshow(image, cmap="gray")
+    if n == 1:
+        axes = [axes]
 
-    if bboxes and class_labels:
-        img_h, img_w = image.shape[:2]
-        for cls_id, (cx, cy, w, h) in zip(class_labels, bboxes):
-            x = (cx - w / 2) * img_w
-            y = (cy - h / 2) * img_h
-            box_w = w * img_w
-            box_h = h * img_h
+    for i, (ax, image) in enumerate(zip(axes, images)):
+        ax.imshow(image, cmap="gray")
 
-            rect = patches.Rectangle((x, y), box_w, box_h, linewidth=1.5, edgecolor='red', facecolor='none')
-            ax.add_patch(rect)
-            ax.text(x, y - 5, str(cls_id), color='red', fontsize=9,
-                    bbox=dict(facecolor='black', alpha=0.5, pad=0.5))
+        bboxes = bboxes_list[i] if bboxes_list else None
+        class_labels = class_labels_list[i] if class_labels_list else None
 
-    ax.set_title(title)
+        if bboxes and class_labels:
+            img_h, img_w = image.shape[:2]
+            for cls_id, (cx, cy, w, h) in zip(class_labels, bboxes):
+                x = (cx - w / 2) * img_w
+                y = (cy - h / 2) * img_h
+                box_w = w * img_w
+                box_h = h * img_h
+
+                rect = patches.Rectangle((x, y), box_w, box_h, linewidth=1.5,
+                                          edgecolor='red', facecolor='none')
+                ax.add_patch(rect)
+                ax.text(x, y - 5, str(cls_id), color='red', fontsize=9,
+                        bbox=dict(facecolor='black', alpha=0.5, pad=0.5))
+
+        title = titles[i] if titles else f"Image {i}"
+        ax.set_title(title)
+        ax.axis('off')
+
+    plt.tight_layout()
     plt.show()
