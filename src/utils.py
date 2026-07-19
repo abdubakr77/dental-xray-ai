@@ -386,10 +386,26 @@ def augment_and_save(image, bboxes, class_labels, n_copies, base_filename, outpu
 
 def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
 
-    imgs_path = data_yaml['train']
-    labels_path = data_yaml['train'].replace('images','labels')
+    if is_disease:
+        imgs_path = {}
+
+        all_fol_classes = os.listdir(data_yaml['train'])
+
+        for fol_class in all_fol_classes:
+            fol_class_path = os.path.join(data_yaml['train'],fol_class)
+            all_files_no_ext = [item.split('.')[0] for item in os.listdir(fol_class_path)]
+
+            imgs_path[fol_class] = os.listdir(fol_class_path)
+            aug_files = [os.path.join(fol_class_path, f + '.png') for f in all_files_no_ext if 'aug' in f]
+    else:
+
+        imgs_path = data_yaml['train']
+        labels_path = data_yaml['train'].replace('images','labels')
     
-    all_files_no_ext = [item.split('.')[0] for item in os.listdir(imgs_path)]
+        all_files_no_ext = [item.split('.')[0] for item in os.listdir(imgs_path)]
+
+        aug_files = [os.path.join(imgs_path, f + '.png') for f in all_files_no_ext if 'aug' in f]
+        
 
         
     if apply_debug:
@@ -406,9 +422,7 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
                         debugging=True)
 
     else:
-        aug_files = [f for f in all_files_no_ext if 'aug' in f]
         n_aug = len(aug_files)
-
         if n_aug > 0:
             print(f"Warning: Found {n_aug} images are already augmented!")
             confirm = input(f'Do you want to delete all {n_aug} augmented images before processing? - (y or n): ').lower().strip()
@@ -417,12 +431,13 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
                 deleted_count = 0
                 failed_count = 0
 
-                for fname in aug_files:
-                    img_path = os.path.join(imgs_path, fname + '.png')
-                    label_path = os.path.join(labels_path, fname + '.txt')
+                for fpath in aug_files:
                     try:
-                        os.remove(img_path)
-                        os.remove(label_path)
+                        os.remove(fpath)
+
+                        if not is_disease:
+                            os.remove(fpath.replace('images','labels').replace('png','txt'))
+
                         deleted_count += 1
                     except Exception as e:
                         print(f"Failed to remove {fname}: {e}")
