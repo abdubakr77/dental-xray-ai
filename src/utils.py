@@ -349,26 +349,35 @@ def build_transform(img_h, img_w, config, is_disease=False):
 
 
 def augment_and_save(image, bboxes, class_labels, n_copies, base_filename, output_images, output_labels,
-                      aug_config, debugging=False):
+                      aug_config, is_disease=False, debugging=False):
+    if not is_disease:
+        img_h, img_w = image.shape[:2]
+        transform = build_transform(img_h, img_w, aug_config, is_disease)
+
+        for n in range(n_copies):
+            augmented = transform(image=image, bboxes=bboxes, class_labels=class_labels)
+            new_img = augmented['image']
+            new_bboxes = augmented['bboxes']
+            new_labels = augmented['class_labels']
+            new_filename = f"{base_filename}_aug{n}"
+
+            if debugging:
+                visualize_augmentation(new_img, new_bboxes, new_labels, title=new_filename)
+            else:
+                cv2.imwrite(os.path.join(output_images, f"{new_filename}.png"), new_img)
+                with open(os.path.join(output_labels, f"{new_filename}.txt"), 'w') as f:
+                    for cls_id, (cx, cy, w, h) in zip(new_labels, new_bboxes):
+                        f.write(f"{cls_id}  {cx}  {cy}  {w}  {h}\n")
     
-    img_h, img_w = image.shape[:2]
-    transform = build_transform(img_h, img_w, aug_config)
+    else:
 
-    for n in range(n_copies):
-        augmented = transform(image=image, bboxes=bboxes, class_labels=class_labels)
-        new_img = augmented['image']
-        new_bboxes = augmented['bboxes']
-        new_labels = augmented['class_labels']
-        new_filename = f"{base_filename}_aug{n}"
+        transform = build_transform(None,None,aug_config,is_disease=True)
+        for n in range(n_copies):
+            augmented = transform(image=image)
+            new_img = augmented['image']
+            new_filename = f"{base_filename}_aug{n}"
 
-        if debugging:
-            visualize_augmentation(new_img, new_bboxes, new_labels, title=new_filename)
-        else:
             cv2.imwrite(os.path.join(output_images, f"{new_filename}.png"), new_img)
-            with open(os.path.join(output_labels, f"{new_filename}.txt"), 'w') as f:
-                for cls_id, (cx, cy, w, h) in zip(new_labels, new_bboxes):
-                    f.write(f"{cls_id}  {cx}  {cy}  {w}  {h}\n")
-
 
 
 def apply_smart_aug(data_yaml,aug_config,apply_debug=False):
