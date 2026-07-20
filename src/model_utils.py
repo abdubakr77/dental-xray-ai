@@ -2,6 +2,8 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+from src.vis import visualize_augmentation
+from tqdm import tqdm
 
 def draw_corner_box(img, x1, y1, x2, y2, label_name, confidence, color, length, thickness):
     """
@@ -116,3 +118,71 @@ def smart_predict(yolo_model, images_path, conf_filter=0.3,
 
     plt.tight_layout()
     plt.show()
+
+
+
+def export_enum_by_quad_using_model(quadrant_model, enum_images_path, output_root,
+                                       enum_df, conf_threshold=0.5,
+                                       debugging=False, debug_limit=5):
+
+    debug_count = 0
+
+    for fname in tqdm(enum_df['File_Name'].unique(), desc='Cropping using trained quadrant model'):
+
+        if debugging and debug_count >= debug_limit:
+            break
+
+        img_path = os.path.join(enum_images_path, fname)
+        img = cv2.imread(img_path)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        results = quadrant_model.predict(img_path, conf=conf_threshold, verbose=False)[0]
+
+        for box in results.boxes:
+            if debugging and debug_count >= debug_limit:
+                break
+
+            quad_class_id = int(box.cls[0])
+            quad_name = quadrant_model.names[quad_class_id]
+            x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+            cropped_img = img[int(y1):int(y2), int(x1):int(x2)]
+            crop_h, crop_w = cropped_img.shape[:2]
+            if crop_h == 0 or crop_w == 0:
+                continue
+
+            teeth_rows = enum_df[(enum_df['File_Name'] == fname) & (enum_df['Quad'] == quad_name)]
+
+            new_labels = []
+            for _, row in teeth_rows.iterrows():
+                tx, ty, tw, th = row['Bbox']
+                new_x = tx - x1
+                new_y = ty - y1
+                if new_x + tw <= 0 or new_y + th <= 0 or new_x >= crop_w or new_y >= crop_h:
+                    continue
+                cx = (new_x + tw / 2) / crop_w
+                cy = (new_y + th / 2) / crop_h
+                nw = tw / crop_w
+                nh = th / crop_h
+                cx, cy = np.clip([cx, cy], 0, 1)
+                nw, nh = np.clip([nw, nh], 0, 1)
+                new_labels.append((row['Enumeration'], cx, cy, nw, nh))
+
+            if not new_labels:
+                continue
+
+            base_name = f"{fname.split('.')[0]}_{quad_name.replace(' ', '')}"
+
+            if debugging:
+                visualize_augmentation(
+                    cropped_img,
+                    [(cx, cy, nw, nh) for _, cx, cy, nw, nh in new_labels],
+                    [cls_id for cls_id, _, _, _, _ in new_labels],
+                    title=base_name
+                )
+                debug_count += 1
+                continue
+
+            cv2.imwrite(os.path.join(output_root, 'images', f"{base_name}.png"),
+                        cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR))
+            with open(os.path.join(output_root, 'labels', f"{base_name}.txt"), 'w') as f:
+                for cls_id, cx, cy, nw, nh in new_labels:
+                    f.write(f"{cls_id} {cx} {cy} {nw} {nh}\n")
