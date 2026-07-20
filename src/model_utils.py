@@ -153,17 +153,28 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, output_roo
 
             new_labels = []
             for _, row in teeth_rows.iterrows():
-                tx, ty, tw, th = row['Bbox']
+                tx, ty, tw, th = list(row['Bbox'])
                 new_x = tx - x1
                 new_y = ty - y1
-                if new_x + tw <= 0 or new_y + th <= 0 or new_x >= crop_w or new_y >= crop_h:
+                new_x = tx - x1
+                new_y = ty - y1
+
+                clipped_x1 = max(new_x, 0)
+                clipped_y1 = max(new_y, 0)
+                clipped_x2 = min(new_x + tw, crop_w)
+                clipped_y2 = min(new_y + th, crop_h)
+
+                clipped_w = clipped_x2 - clipped_x1
+                clipped_h = clipped_y2 - clipped_y1
+
+                if clipped_w <= 0 or clipped_h <= 0:
                     continue
-                cx = (new_x + tw / 2) / crop_w
-                cy = (new_y + th / 2) / crop_h
-                nw = tw / crop_w
-                nh = th / crop_h
-                cx, cy = np.clip([cx, cy], 0, 1)
-                nw, nh = np.clip([nw, nh], 0, 1)
+
+                cx = (clipped_x1 + clipped_w / 2) / crop_w
+                cy = (clipped_y1 + clipped_h / 2) / crop_h
+                nw = clipped_w / crop_w
+                nh = clipped_h / crop_h
+
                 new_labels.append((row['Enumeration'], cx, cy, nw, nh))
 
             if not new_labels:
@@ -173,10 +184,10 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, output_roo
 
             if debugging:
                 visualize_augmentation(
-                    cropped_img,
-                    [(cx, cy, nw, nh) for _, cx, cy, nw, nh in new_labels],
-                    [cls_id for cls_id, _, _, _, _ in new_labels],
-                    title=base_name
+                    [cropped_img],
+                    [[(cx, cy, nw, nh) for _, cx, cy, nw, nh in new_labels]],
+                    [[cls_id for cls_id, _, _, _, _ in new_labels]],
+                    titles=[base_name]
                 )
                 debug_count += 1
                 continue
