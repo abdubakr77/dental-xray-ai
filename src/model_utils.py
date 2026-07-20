@@ -38,7 +38,7 @@ def draw_corner_box(img, x1, y1, x2, y2, label_name, confidence, color, length, 
 
 
 
-def smart_predict(yolo_model, images_path, conf_filter=0.3, 
+def smart_predict(yolo_model, images_path, conf_threshold=0.3, 
                   show_true_boxes = False, save_crop_output_image:str=False, 
                   save_output:bool=False, save_dir:str=None, 
                   apply_custom_draw_box=False,color=(255, 0, 0), length=150, thickness=5):
@@ -48,7 +48,7 @@ def smart_predict(yolo_model, images_path, conf_filter=0.3,
     rand_image_name = np.random.choice(os.listdir(images_path)).split('.')[0]
     image_path = os.path.join(images_path,rand_image_name+'.png')
 
-    outputs = yolo_model.predict(image_path,conf=conf_filter)
+    outputs = yolo_model.predict(image_path,conf=conf_threshold)
 
     output = outputs[0]
     boxes = output.boxes
@@ -121,16 +121,15 @@ def smart_predict(yolo_model, images_path, conf_filter=0.3,
 
 
 
-def export_enum_by_quad_using_model(quadrant_model, enum_images_path, output_root,
-                                       enum_df, conf_threshold=0.5,
-                                       debugging=False, debug_limit=5):
+def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
+                                    output_root=os.getcwd(),
+                                    conf_threshold=0.5,
+                                    debugging=False, debug_limit=5):
 
     debug_count = 0
+    all_images , all_labels, all_bboxes , all_filenames = [],[],[],[]
 
     for fname in tqdm(enum_df['File_Name'].unique(), desc='Cropping using trained quadrant model'):
-
-        if debugging and debug_count >= debug_limit:
-            break
 
         img_path = os.path.join(enum_images_path, fname)
         img = cv2.imread(img_path)
@@ -138,8 +137,6 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, output_roo
         results = quadrant_model.predict(img_path, conf=conf_threshold, verbose=False)[0]
 
         for box in results.boxes:
-            if debugging and debug_count >= debug_limit:
-                break
 
             quad_class_id = int(box.cls[0])
             quad_name = quadrant_model.names[quad_class_id]
@@ -183,17 +180,30 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, output_roo
             base_name = f"{fname.split('.')[0]}_{quad_name.replace(' ', '')}"
 
             if debugging:
-                visualize_augmentation(
-                    [cropped_img],
-                    [[(cx, cy, nw, nh) for _, cx, cy, nw, nh in new_labels]],
-                    [[cls_id for cls_id, _, _, _, _ in new_labels]],
-                    titles=[base_name]
-                )
+                all_images.append(cropped_img)
+                all_bboxes.append([(cx, cy, nw, nh) for _, cx, cy, nw, nh in new_labels])
+                all_labels.append([cls_id for cls_id, _, _, _, _ in new_labels])
+                all_filenames.append(base_name)
+
                 debug_count += 1
+                if debugging and debug_count >= debug_limit:
+                    break
                 continue
 
-            cv2.imwrite(os.path.join(output_root, 'images', f"{base_name}.png"),
-                        cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR))
-            with open(os.path.join(output_root, 'labels', f"{base_name}.txt"), 'w') as f:
-                for cls_id, cx, cy, nw, nh in new_labels:
-                    f.write(f"{cls_id} {cx} {cy} {nw} {nh}\n")
+            else:
+                cv2.imwrite(os.path.join(output_root, 'images', f"{base_name}.png"),
+                            cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR))
+                with open(os.path.join(output_root, 'labels', f"{base_name}.txt"), 'w') as f:
+                    for cls_id, cx, cy, nw, nh in new_labels:
+                        f.write(f"{cls_id} {cx} {cy} {nw} {nh}\n")
+
+
+        if debugging and debug_count >= debug_limit:
+
+            visualize_augmentation(
+                all_images,
+                all_bboxes,
+                all_labels,
+                titles=all_filenames
+            )
+            break
