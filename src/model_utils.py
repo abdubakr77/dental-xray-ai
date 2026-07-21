@@ -138,6 +138,7 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
         img = cv2.imread(img_path)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         results = quadrant_model.predict(img_path, conf=conf_threshold, verbose=False)[0]
+        n_predicted_boxes = len(results.boxes)
 
         for box in results.boxes:
 
@@ -197,6 +198,9 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
             else:
                 if confidence < 0.7:
                     print(f"Warning: Low Confidence Alert! \nFile Name: {fname.split('.')[0]} Got {confidence} At Quadrant {quad_name}\n")
+
+                if n_predicted_boxes != 4:
+                    print(f'Warning: Model Predicted With {n_predicted_boxes} On This Image: {base_name}')
 
                 cv2.imwrite(os.path.join(output_root, 'images', f"{base_name}.png"),
                             cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR))
