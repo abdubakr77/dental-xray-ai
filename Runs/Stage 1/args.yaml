@@ -1,12 +1,12 @@
 task: detect
 mode: train
 model: ../Models/yolo26s.pt
-data: ..\Data\Processed\Stage 1 (Quadrant Detection)\\data.yaml
-epochs: 100
+data: ..\Data\Processed\Stage 1 (Quadrant Detection)\data.yaml
+epochs: 50
 time: null
-patience: 20
-batch: 16
-imgsz: 768
+patience: 10
+batch: 8
+imgsz: 1024
 save: true
 save_period: -1
 cache: false
@@ -71,7 +71,7 @@ opset: null
 workspace: null
 nms: false
 lr0: 0.001
-lrf: 0.01
+lrf: 0.001
 momentum: 0.937
 weight_decay: 0.0005
 warmup_epochs: 3.0
@@ -108,5 +108,5 @@ auto_augment: null
 erasing: 0.0
 cfg: null
 tracker: tracktrack.yaml
-save_dir: C:\Users\ibrah.HIMA\OneDrive\Desktop\Full AI\Projects\GitHub - Kaggle Projects\dental-xray-ai\Runs\Stage
+save_dir: C:\Users\ibrah.HIMA\OneDrive\Desktop\Full AI\Projects\GitHub - Kaggle Projects\dental-xray-ai\Notebooks\runs\detect\Runs\Stage
   1
