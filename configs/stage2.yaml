@@ -1,0 +1,3 @@
+s2_main_path: ..\Data\Processed\Stage 2 (Enumeration Detection)
+data: ..\Data\Processed\Stage 2 (Enumeration Detection)\data.yaml
+runs_s2_output: ..\Runs\Stage 2
