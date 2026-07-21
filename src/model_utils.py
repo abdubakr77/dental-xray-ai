@@ -39,15 +39,21 @@ def draw_corner_box(img, x1, y1, x2, y2, label_name, confidence, color, length, 
 
 
 
-def smart_predict(yolo_model, images_path, conf_threshold=0.3, 
+def smart_predict(yolo_model, images_path, specific_image_name=None, conf_threshold=0.3, 
                   show_true_boxes = False, save_crop_output_image:str=False, 
                   save_output:bool=False, save_dir:str=None, 
                   apply_custom_draw_box=False,color=(255, 0, 0), length=150, thickness=5):
 
     if not os.path.exists(images_path):
         raise FileNotFoundError('Image Path not existed! Please Check the path is correct')
+    
     rand_image_name = np.random.choice(os.listdir(images_path)).split('.')[0]
     image_path = os.path.join(images_path,rand_image_name+'.png')
+
+    if specific_image_name:
+        rand_image_name = specific_image_name.split('.')[0]
+        image_path = os.path.join(images_path,rand_image_name+'.png')
+
 
     outputs = yolo_model.predict(image_path,conf=conf_threshold)
 
