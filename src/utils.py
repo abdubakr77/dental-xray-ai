@@ -154,21 +154,62 @@ def multilabel_train_val_test_split(df,y,test_size=0.2,apply_check = False):
 
 
 
-def convert_to_yolo(target_col:str, images_path:str ,output_root: str, train_df, valid_df, test_df=None):
-    print("WARNING: Please Check all txt files in labels folder are cleared because this function is recommended to run it only once.\nYou Have 5 seconds from now if you need to stop the code!")
-    sleep(5)
-    # clear_output(wait=True)
+def convert_to_yolo(target_col: str, images_path: str, output_root: str,
+                     train_df, valid_df, test_df=None, clear_existing=True):
 
-    ds_partitions = {'train_df':train_df,
-                     'valid_df':valid_df,
-                     'test_df':test_df,}
-    
+    ds_partitions = {'train_df': train_df,
+                      'valid_df': valid_df,
+                      'test_df': test_df}
 
-    for name,df in ds_partitions.items():
-        for fname in tqdm(df['File_Name'].unique().tolist(),f'{name} Is Processing Now...'):
+    # ---- check + clear existing images/labels ----
+    if clear_existing:
+        any_existing = False
+        for name, df in ds_partitions.items():
+            if df is None:
+                continue
+            split_folder = name.replace('_df', '')
+            imgs_path = os.path.join(output_root, split_folder, 'images')
+            labels_path = os.path.join(output_root, split_folder, 'labels')
+            if (os.path.exists(imgs_path) and len(os.listdir(imgs_path)) > 0) or \
+               (os.path.exists(labels_path) and len(os.listdir(labels_path)) > 0):
+                any_existing = True
+                break
+
+        if any_existing:
+            print("Warning: Found existing images/labels in the YOLO dataset.")
+            confirm = input("Do you want to delete them all before re-converting? - (y or n): ").lower().strip()
+
+            if confirm == 'y':
+                deleted_count = 0
+                failed_count = 0
+                for name, df in ds_partitions.items():
+                    if df is None:
+                        continue
+                    split_folder = name.replace('_df', '')
+                    for sub in ['images', 'labels']:
+                        sub_path = os.path.join(output_root, split_folder, sub)
+                        if not os.path.exists(sub_path):
+                            continue
+                        for f in os.listdir(sub_path):
+                            try:
+                                os.remove(os.path.join(sub_path, f))
+                                deleted_count += 1
+                            except Exception as e:
+                                print(f"Failed to remove {f}: {e}")
+                                failed_count += 1
+
+                print(f"Deleted {deleted_count} files. Failed: {failed_count}.")
+            else:
+                print("Skipped clearing. Existing files will cause FileExistsError if duplicated.")
+
+    # ---- Real Converting Here ----
+    for name, df in ds_partitions.items():
+        if df is None:
+            continue
+
+        for fname in tqdm(df['File_Name'].unique().tolist(), f'{name} Is Processing Now...'):
 
             filtered_df = df[df['File_Name'] == fname]
-
             output_img_name_no_ext = f"{fname.split('.')[0]}"
 
             for idx in range(len(filtered_df)):
@@ -182,38 +223,37 @@ def convert_to_yolo(target_col:str, images_path:str ,output_root: str, train_df,
                 x2 = w / img_w
                 y2 = h / img_h
 
-                # x_back = (x1 - x2 / 2) * img_w
-                # y_back = (y1 - y2 / 2) * img_h
-                # w_back = x2 * img_w
-                # h_back = y2 * img_h
-
-                # print("Normalized:", x1, y1, x2, y2)
-                # print("Back to pixels:", x_back, y_back, w_back, h_back)
-                # print("Original was:  ", x, y, w, h)
-
                 if target_col == 'Disease_Name':
-                    cls_id = ["impacted", "caries", "periapical","deep_caries"].index(filtered_df.iloc[idx][target_col])
+                    cls_id = ["impacted", "caries", "periapical", "deep_caries"].index(filtered_df.iloc[idx][target_col])
                 elif target_col == 'Enumeration':
                     cls_id = 0
                     if 'Disease_Name' in df.columns:
-                        output_img_name_no_ext = f'{fname.split('.')[0]}_dis_teeth'
+                        output_img_name_no_ext = f"{fname.split('.')[0]}_dis_teeth"
                 else:
-                    cls_id = ["Upper Right", "Upper Left","Lower Left","Lower Right"].index(filtered_df.iloc[idx][target_col])
+                    cls_id = ["Upper Right", "Upper Left", "Lower Left", "Lower Right"].index(filtered_df.iloc[idx][target_col])
 
-                if   'train' in name: labels_path = os.path.join(output_root,'train','labels',output_img_name_no_ext+'.txt'); imgs_path = os.path.join(output_root,'train','images',output_img_name_no_ext+'.png')
-                elif 'valid' in name: labels_path = os.path.join(output_root,'valid','labels',output_img_name_no_ext+'.txt'); imgs_path = os.path.join(output_root,'valid','images',output_img_name_no_ext+'.png')
-                else                : labels_path = os.path.join(output_root,'test','labels',output_img_name_no_ext+'.txt'); imgs_path = os.path.join(output_root,'test','images',output_img_name_no_ext+'.png')
+                if 'train' in name:
+                    labels_path = os.path.join(output_root, 'train', 'labels', output_img_name_no_ext + '.txt')
+                    imgs_path = os.path.join(output_root, 'train', 'images', output_img_name_no_ext + '.png')
+                elif 'valid' in name:
+                    labels_path = os.path.join(output_root, 'valid', 'labels', output_img_name_no_ext + '.txt')
+                    imgs_path = os.path.join(output_root, 'valid', 'images', output_img_name_no_ext + '.png')
+                else:
+                    labels_path = os.path.join(output_root, 'test', 'labels', output_img_name_no_ext + '.txt')
+                    imgs_path = os.path.join(output_root, 'test', 'images', output_img_name_no_ext + '.png')
 
-                with open(labels_path,'a') as f:
+                with open(labels_path, 'a') as f:
                     f.write(f'{cls_id}  {x1}  {y1}  {x2}  {y2}\n')
 
             if os.path.exists(imgs_path):
-                raise FileExistsError(f"Error: There is a files are existed...\nIf you need to ignore it then type (None) in {name} parameter to not duplicate the files!\nOr make sure that you deleted the files")
-            
-            shutil.copy2(os.path.join(images_path,fname),imgs_path)
-                # break 
+                raise FileExistsError(
+                    f"Error: File already exists at {imgs_path}.\n"
+                    f"Set clear_existing=True and re-run, or delete manually first."
+                )
 
-        print("Done!")
+            shutil.copy2(os.path.join(images_path, fname), imgs_path)
+
+        print(f"{name} Done!")
 
 
 def crop_image(image,x,y,w,h):
