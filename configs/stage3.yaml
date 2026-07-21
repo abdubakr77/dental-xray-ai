@@ -1,0 +1,6 @@
+original_images_path: ../Data/Raw/DENTEX CHALLENGE 2023/Training_data/quadrant-enumeration-disease/xrays
+original_json_path: ../Data/Raw/DENTEX CHALLENGE 2023/Training_data/quadrant-enumeration-disease/train_quadrant_enumeration.json
+
+s3_main_path: ..\Data\Processed\Stage 3 (Disease Classifier)
+data: ..\Data\Processed\Stage 3 (Disease Classifier)\data.yaml
+runs_s3_output: ..\Runs\Stage 3
