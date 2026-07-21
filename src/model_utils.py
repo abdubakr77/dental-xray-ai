@@ -143,6 +143,7 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
 
             quad_class_id = int(box.cls[0])
             quad_name = quadrant_model.names[quad_class_id]
+            confidence = np.round(float(box.conf),2)
             x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
             cropped_img = img[int(y1):int(y2), int(x1):int(x2)]
             crop_h, crop_w = cropped_img.shape[:2]
@@ -194,6 +195,9 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
                 continue
 
             else:
+                if confidence < 0.7:
+                    print(f"Warning: Low Confidence Alert! \nFile Name: {fname.split('.')[0]} Got {confidence} At Quadrant {quad_name}\n")
+
                 cv2.imwrite(os.path.join(output_root, 'images', f"{base_name}.png"),
                             cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR))
                 with open(os.path.join(output_root, 'labels', f"{base_name}.txt"), 'w') as f:
