@@ -44,7 +44,7 @@ def compute_iou(box1, box2):
         return 0
     return intersection / union
 
-def find_duplicate_boxes(df, iou_threshold=0.9):
+def find_duplicate_boxes(df, target_col, iou_threshold=0.9):
     duplicates = []
     
     for fname in df['File_Name'].unique():
@@ -56,15 +56,15 @@ def find_duplicate_boxes(df, iou_threshold=0.9):
                 box1 = rows.iloc[i]['Bbox']
                 box2 = rows.iloc[j]['Bbox']
                 iou = compute_iou(box1, box2)
-                diseases_text = f'{rows.iloc[i]['Disease_Name']} {rows.iloc[j]['Disease_Name']}'
-                sorted_diseases_text = sorted(diseases_text.split())
+                text = f'{rows.iloc[i][target_col]} {rows.iloc[j][target_col]}'
+                sorted_text = sorted(text.split())
                 if iou >= iou_threshold:
                     duplicates.append({
                         'fname': fname,
                         'index_1': rows.iloc[i]['index'],
                         'index_2': rows.iloc[j]['index'],
                         'iou': iou,
-                        'diseases': f'{sorted_diseases_text[0]} & {sorted_diseases_text[1]}',
+                        target_col: f'{sorted_text[0]} & {sorted_text[1]}',
                     })
 
     print(f"Number of duplicate Boxes: {len(duplicates)}")
