@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 from src.vis import visualize_augmentation
+from src.utils import clear_dataset_images
 from tqdm import tqdm
 
 def draw_corner_box(img, x1, y1, x2, y2, label_name, confidence, color, length, thickness):
@@ -123,14 +124,45 @@ def smart_predict(yolo_model, images_path, conf_threshold=0.3,
 
 def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
                                     output_root=os.getcwd(),
-                                    conf_threshold=0.5,
-                                    debugging=False, debug_limit=5):
+                                    conf_threshold=0.3,
+                                    debugging=False, debug_limit=5,
+                                    clear_existing=True):
+
+    # ---- check + clear existing images/labels ----
+    if clear_existing and not debugging:
+        imgs_path = os.path.join(output_root, 'images')
+        labels_path = os.path.join(output_root, 'labels')
+
+        any_existing = (os.path.exists(imgs_path) and len(os.listdir(imgs_path)) > 0) or \
+                        (os.path.exists(labels_path) and len(os.listdir(labels_path)) > 0)
+
+        if any_existing:
+            print("Warning: Found existing images/labels in the output directory.")
+            confirm = input("Do you want to delete them all before re-exporting? - (y or n): ").lower().strip()
+
+            if confirm == 'y':
+                deleted_count = 0
+                failed_count = 0
+                for sub_path in [imgs_path, labels_path]:
+                    if not os.path.exists(sub_path):
+                        continue
+                    for f in os.listdir(sub_path):
+                        try:
+                            os.remove(os.path.join(sub_path, f))
+                            deleted_count += 1
+                        except Exception as e:
+                            print(f"Failed to remove {f}: {e}")
+                            failed_count += 1
+
+                print(f"Deleted {deleted_count} files. Failed: {failed_count}.")
+            else:
+                print("Skipped clearing. New files will be mixed with existing ones.")
 
     debug_count = 0
-    all_images , all_labels, all_bboxes , all_filenames = [],[],[],[]
+    all_images, all_labels, all_bboxes, all_filenames = [], [], [], []
 
     for fname in tqdm(enum_df['File_Name'].unique(), desc='Cropping using trained quadrant model'):
-        
+
         if debugging:
             fname = np.random.choice(enum_df['File_Name'].unique())
 
@@ -144,7 +176,7 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
 
             quad_class_id = int(box.cls[0])
             quad_name = quadrant_model.names[quad_class_id]
-            confidence = np.round(float(box.conf),2)
+            confidence = np.round(float(box.conf), 2)
             x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
             cropped_img = img[int(y1):int(y2), int(x1):int(x2)]
             crop_h, crop_w = cropped_img.shape[:2]
@@ -156,8 +188,6 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
             new_labels = []
             for _, row in teeth_rows.iterrows():
                 tx, ty, tw, th = list(row['Bbox'])
-                new_x = tx - x1
-                new_y = ty - y1
                 new_x = tx - x1
                 new_y = ty - y1
 
@@ -191,30 +221,31 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
                 all_filenames.append(base_name)
 
                 debug_count += 1
-                if debugging and debug_count >= debug_limit:
+                if debug_count >= debug_limit:
                     break
                 continue
 
             else:
+                img_out_path = os.path.join(output_root, 'images', f"{base_name}.png")
+                label_out_path = os.path.join(output_root, 'labels', f"{base_name}.txt")
+
+                if os.path.exists(img_out_path):
+                    raise FileExistsError(
+                        f"Error: File already exists at {img_out_path}.\n"
+                        f"Set clear_existing=True and re-run, or delete manually first."
+                    )
+
                 if confidence < 0.7:
                     print(f"Warning: Low Confidence Alert! \nFile Name: {fname.split('.')[0]} Got {confidence} At Quadrant {quad_name}\n")
 
                 if n_predicted_boxes != 4:
                     print(f'Warning: Model Predicted With {n_predicted_boxes} On This Image: {base_name}')
 
-                cv2.imwrite(os.path.join(output_root, 'images', f"{base_name}.png"),
-                            cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR))
-                with open(os.path.join(output_root, 'labels', f"{base_name}.txt"), 'w') as f:
+                cv2.imwrite(img_out_path, cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR))
+                with open(label_out_path, 'w') as f:
                     for cls_id, cx, cy, nw, nh in new_labels:
                         f.write(f"{cls_id} {cx} {cy} {nw} {nh}\n")
 
-
         if debugging and debug_count >= debug_limit:
-
-            visualize_augmentation(
-                all_images,
-                all_bboxes,
-                all_labels,
-                titles=all_filenames
-            )
+            visualize_augmentation(all_images, all_bboxes, all_labels, titles=all_filenames)
             break
