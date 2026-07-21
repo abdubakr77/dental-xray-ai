@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 from src.vis import visualize_augmentation
-from src.utils import clear_dataset_images
 from tqdm import tqdm
 
 def draw_corner_box(img, x1, y1, x2, y2, label_name, confidence, color, length, thickness):
