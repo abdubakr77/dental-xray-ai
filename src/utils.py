@@ -464,69 +464,50 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
                             aug_config=aug_config,
                             debugging=True)
 
+
+    if is_disease:
+        for fol_class in list(disease_images_per_class.keys()):
+            class_label = int(fol_class[0])
+            if class_label == 4:
+                continue
+
+            for fname in tqdm(disease_images_per_class[fol_class],
+                               desc=f'Augmenting {diagnosis_map[int(fol_class[0])]} Images Now...'):
+                image = read_image_and_label(os.path.join(fol_class, fname), data_yaml)
+
+                if class_label == 2:
+                    n = 15
+                elif class_label == 0 or class_label == 3:
+                    n = 4
+                else:
+                    if np.random.choice([0, 1]):
+                        continue
+                    n = 1
+
+                augment_and_save(image=image, bboxes=None, class_labels=None, n_copies=n,
+                                  base_filename=fname, output_images=os.path.join(main_images_path, fol_class),
+                                  output_labels=None, aug_config=aug_config, is_disease=True)
+                    
     else:
-        if is_disease:
-            for fol_class in list(disease_images_per_class.keys()):
-                class_label = int(fol_class[0])
+        for fname in tqdm(all_files_no_ext, desc='Augmenting Images Now...'):
+            image, bboxes, class_labels = read_image_and_label(fname, data_yaml)
 
-                if class_label == 4 : continue
+            if 'Upper Right' in data_yaml['names']:
+                n = 3
+            elif 'Tooth' in data_yaml['names']:
+                n_teeth = len(bboxes)
+                n = 6 if n_teeth >= 7 else 4 if n_teeth >= 4 else 2
+            elif 'caries' in data_yaml['names']:
+                if 2 in class_labels:
+                    n = 10
+                elif 0 in class_labels or 3 in class_labels:
+                    n = 3
+                else:
+                    n = 1
 
-                for fname in tqdm(disease_images_per_class[fol_class],desc=f'Augmenting {diagnosis_map[int(fol_class[0])]} Images Now...'):
-                    image = read_image_and_label(os.path.join(fol_class,fname),data_yaml)
-
-
-                    if class_label == 2:
-                        n = 15
-                    elif class_label == 0 or class_label == 3:
-                        n = 4
-                    else:
-                        # Random skip
-                        if np.random.choice([0,1]): continue
-                        n = 1
-
-                        
-                    augment_and_save(image=image,
-                                    bboxes=None,
-                                    class_labels=None,
-                                    n_copies=n,
-                                    base_filename=fname,
-                                    output_images=os.path.join(main_images_path,fol_class),
-                                    output_labels=None,
-                                    aug_config= aug_config, is_disease=True)
-                    
-        else:
-            for fname in tqdm(all_files_no_ext,desc=f'Augmenting Images Now...'):
-
-                image,bboxes,class_labels = read_image_and_label(fname,data_yaml)
-
-                if 'Upper Right' in data_yaml['names']:
-                    n=3
-
-                elif 'Tooth' in data_yaml['names']:
-                    n_teeth = len(bboxes)
-                    if n_teeth >= 7:
-                        n = 6
-                    elif n_teeth >= 4:
-                        n = 4
-                    else:
-                        n = 2
-                
-                elif 'caries' in data_yaml['names']:
-                    if 2 in class_labels:
-                        n = 10
-                    elif 0 in class_labels or 3 in  class_labels:
-                        n = 3
-                    else:
-                        n = 1
-                    
-                augment_and_save(image=image,
-                                bboxes=bboxes,
-                                class_labels=class_labels,
-                                n_copies=n,
-                                base_filename=fname,
-                                output_images=main_images_path,
-                                output_labels=labels_path,
-                                aug_config= aug_config)
+            augment_and_save(image=image, bboxes=bboxes, class_labels=class_labels, n_copies=n,
+                              base_filename=fname, output_images=main_images_path,
+                              output_labels=labels_path, aug_config=aug_config)
 
 
 def clear_dataset_images(data_yaml, is_disease=False, target='augmented', confirm_prompt=True):
