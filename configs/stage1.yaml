@@ -1,5 +1,5 @@
 original_images_path: ../Data/Raw/DENTEX CHALLENGE 2023/Training_data/quadrant/xrays
-original_json_path: ../Data/Raw/DENTEX CHALLENGE 2023/Training_data/quadrant/train_quadrant_enumeration_disease.json
+original_json_path: ../Data/Raw/DENTEX CHALLENGE 2023/Training_data/quadrant/train_quadrant.json
 
 s1_main_path: ..\Data\Processed\Stage 1 (Quadrant Detection)
 runs_s1_output: ..\Runs\Stage 1
