@@ -412,14 +412,28 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
     if is_disease:
         disease_images_per_class = {}
         all_fol_classes = os.listdir(main_images_path)
+        aug_exists = False
         for fol_class in all_fol_classes:
             fol_class_path = os.path.join(main_images_path, fol_class)
             all_files_no_ext = [item.split('.')[0] for item in os.listdir(fol_class_path)]
             disease_images_per_class[fol_class] = all_files_no_ext
+            if any('aug' in f for f in all_files_no_ext):
+                aug_exists = True
     else:
         labels_path = main_images_path.replace('images', 'labels')
         all_files_no_ext = [item.split('.')[0] for item in os.listdir(main_images_path)]
+        aug_exists = any('aug' in f for f in all_files_no_ext)
         
+
+    if aug_exists and not apply_debug:
+        print("Warning: Found existing augmented images in this dataset.")
+        confirm = input("Do you want to clear them now using clear_dataset_images()? - (y or n): ").lower().strip()
+        if confirm == 'y':
+            clear_dataset_images(data_yaml, is_disease=is_disease, target='augmented', confirm_prompt=False)
+        else:
+            print("Skipped clearing. Proceeding with existing augmented images still in place.")
+
+
 
     # Debugging HERE
     if apply_debug:
