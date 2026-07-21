@@ -535,6 +535,8 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
                             output_labels=None,
                             aug_config=aug_config,
                             debugging=True)
+            
+        return
 
 
     if is_disease:
