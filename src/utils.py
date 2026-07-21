@@ -226,72 +226,104 @@ def crop_image(image,x,y,w,h):
 
 
 
-def prepare_disease_classifier(images_path,output_root,train_df,valid_df,test_df=None):
+def prepare_disease_classifier(images_path, output_root, train_df, valid_df, test_df=None,
+                                 clear_existing=True):
 
-    ds_partitions = {'train_df':train_df,
-                     'valid_df':valid_df,
-                     'test_df':test_df,}
-    
+    ds_partitions = {'train_df': train_df,
+                      'valid_df': valid_df,
+                      'test_df': test_df}
 
-    for name,df in ds_partitions.items():
+    dis_list = ["impacted", "caries", "periapical", "deep_caries"]
+
+    # ---- check + clear existing images ----
+    if clear_existing:
+        any_existing = False
+        for name, df in ds_partitions.items():
+            if df is None:
+                continue
+            split_folder = name.replace('_df', '')  # train_df -> train
+            split_path = os.path.join(output_root, split_folder)
+            if os.path.exists(split_path):
+                for fol in os.listdir(split_path):
+                    fol_path = os.path.join(split_path, fol)
+                    if os.path.isdir(fol_path) and len(os.listdir(fol_path)) > 0:
+                        any_existing = True
+                        break
+
+        if any_existing:
+            print("Warning: Found existing images in the disease classifier dataset.")
+            confirm = input("Do you want to delete them all before re-preparing? - (y or n): ").lower().strip()
+
+            if confirm == 'y':
+                deleted_count = 0
+                failed_count = 0
+                for name, df in ds_partitions.items():
+                    if df is None:
+                        continue
+                    split_folder = name.replace('_df', '')
+                    split_path = os.path.join(output_root, split_folder)
+                    if not os.path.exists(split_path):
+                        continue
+                    for fol in os.listdir(split_path):
+                        fol_path = os.path.join(split_path, fol)
+                        if not os.path.isdir(fol_path):
+                            continue
+                        for f in os.listdir(fol_path):
+                            try:
+                                os.remove(os.path.join(fol_path, f))
+                                deleted_count += 1
+                            except Exception as e:
+                                print(f"Failed to remove {f}: {e}")
+                                failed_count += 1
+
+                print(f"Deleted {deleted_count} images. Failed: {failed_count}.")
+            else:
+                print("Skipped clearing. Existing images will cause FileExistsError if duplicated.")
+
+    for name, df in ds_partitions.items():
         if df is None:
             continue
-        for fname in tqdm(df['File_Name'].unique().tolist(),f'{name} Is Processing Now...'):
+        for fname in tqdm(df['File_Name'].unique().tolist(), f'{name} Is Processing Now...'):
 
             filtered_df = df[df['File_Name'] == fname]
-
             fname_no_ext = f"{fname.split('.')[0]}"
 
             for idx in range(len(filtered_df)):
 
                 x, y, w, h = filtered_df.iloc[idx]['Bbox']
 
-                train_path = os.path.join(output_root,'train')
-                valid_path = os.path.join(output_root,'valid')
-                test_path = os.path.join(output_root,'test')
+                train_path = os.path.join(output_root, 'train')
+                valid_path = os.path.join(output_root, 'valid')
+                test_path = os.path.join(output_root, 'test')
 
                 if 'Disease_Name' in df.columns:
-                    dis_list = ["impacted", "caries", "periapical", "deep_caries"]
-                    cls_id = dis_list.index(
-                        filtered_df.iloc[idx]['Disease_Name']
-                    )
+                    cls_id = dis_list.index(filtered_df.iloc[idx]['Disease_Name'])
                     output_img_name = f'{fname_no_ext}_{dis_list[cls_id][0].capitalize()}_{idx}.png'
-                else: # It's just for no disease teeth (enumeration dataset)
+                else:
                     cls_id = 4
                     output_img_name = f'{fname_no_ext}_{idx}.png'
 
                 if 'train' in name:
-                    folder = next(
-                        (fol for fol in os.listdir(train_path)
-                        if fol.startswith(f"{cls_id}_")),
-                        '4_no disease'
-                    )
+                    folder = next((fol for fol in os.listdir(train_path) if fol.startswith(f"{cls_id}_")), '4_no disease')
                     fol_class_path = os.path.join(train_path, folder)
-
                 elif 'valid' in name:
-                    folder = next(
-                        (fol for fol in os.listdir(valid_path)
-                        if fol.startswith(f"{cls_id}_")),
-                        '4_no disease'
-                    )
+                    folder = next((fol for fol in os.listdir(valid_path) if fol.startswith(f"{cls_id}_")), '4_no disease')
                     fol_class_path = os.path.join(valid_path, folder)
-
                 else:
-                    folder = next(
-                        (fol for fol in os.listdir(test_path)
-                        if fol.startswith(f"{cls_id}_")),
-                        '4_no disease'
-                    )
+                    folder = next((fol for fol in os.listdir(test_path) if fol.startswith(f"{cls_id}_")), '4_no disease')
                     fol_class_path = os.path.join(test_path, folder)
 
-                if os.path.exists(os.path.join(fol_class_path,output_img_name)):
-                    raise FileExistsError(f'There is files are existed at folder: {fol_class_path} please delete it first to re-preparing again!')
+                output_path = os.path.join(fol_class_path, output_img_name)
+                if os.path.exists(output_path):
+                    raise FileExistsError(
+                        f'File already exists at: {output_path}. '
+                        f'Set clear_existing=True and re-run, or delete manually first.')
 
-                img = cv2.imread(os.path.join(images_path,fname_no_ext+'.png'))
+                img = cv2.imread(os.path.join(images_path, fname_no_ext + '.png'))
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-                cropped_image = crop_image(img,x,y,w,h)
+                cropped_image = crop_image(img, x, y, w, h)
 
-                cv2.imwrite(os.path.join(fol_class_path,output_img_name),cropped_image)
+                cv2.imwrite(output_path, cropped_image)
 
 
 def read_image_and_label(filename_no_ext,data_yaml):
