@@ -130,6 +130,9 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
     all_images , all_labels, all_bboxes , all_filenames = [],[],[],[]
 
     for fname in tqdm(enum_df['File_Name'].unique(), desc='Cropping using trained quadrant model'):
+        
+        if debugging:
+            fname = np.random.choice(enum_df['File_Name'].unique())
 
         img_path = os.path.join(enum_images_path, fname)
         img = cv2.imread(img_path)
