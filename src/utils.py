@@ -256,7 +256,7 @@ def prepare_disease_classifier(images_path,output_root,train_df,valid_df,test_df
                         filtered_df.iloc[idx]['Disease_Name']
                     )
                     output_img_name = f'{fname_no_ext}_{dis_list[cls_id][0].capitalize()}_{idx}.png'
-                else: # It's just for enumeration dataset
+                else: # It's just for no disease teeth (enumeration dataset)
                     cls_id = 4
                     output_img_name = f'{fname_no_ext}_{idx}.png'
 
@@ -411,22 +411,14 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
 
     if is_disease:
         disease_images_per_class = {}
-
         all_fol_classes = os.listdir(main_images_path)
-        aug_files=[]
         for fol_class in all_fol_classes:
-            fol_class_path = os.path.join(main_images_path,fol_class)
+            fol_class_path = os.path.join(main_images_path, fol_class)
             all_files_no_ext = [item.split('.')[0] for item in os.listdir(fol_class_path)]
-
             disease_images_per_class[fol_class] = all_files_no_ext
-            aug_files += [os.path.join(fol_class_path, f + '.png') for f in all_files_no_ext if 'aug' in f]
     else:
-
-        labels_path = main_images_path.replace('images','labels')
-    
+        labels_path = main_images_path.replace('images', 'labels')
         all_files_no_ext = [item.split('.')[0] for item in os.listdir(main_images_path)]
-
-        aug_files = [os.path.join(main_images_path, f + '.png') for f in all_files_no_ext if 'aug' in f]
         
 
     # Debugging HERE
@@ -459,33 +451,6 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
                             debugging=True)
 
     else:
-        n_aug = len(aug_files)
-        if n_aug > 0:
-            print(f"Warning: Found {n_aug} images are already augmented!")
-            confirm = input(f'Do you want to delete all {n_aug} augmented images before processing? - (y or n): ').lower().strip()
-
-            if confirm == 'y':
-                deleted_count = 0
-                failed_count = 0
-
-                for fpath in tqdm(aug_files,'Removing All Augmented Images...'):
-                    try:
-                        os.remove(fpath)
-
-                        if not is_disease:
-                            os.remove(fpath.replace('images','labels').replace('png','txt'))
-
-                        deleted_count += 1
-                    except Exception as e:
-                        print(f"Failed to remove {fname}: {e}")
-                        failed_count += 1
-
-                # clear_output()
-                print(f"Deleted {deleted_count} augmented images. Failed: {failed_count}.")
-                print("Check the failed deletetion if found and Re-Run the function Please.")
-                return
-
-
         if is_disease:
             for fol_class in list(disease_images_per_class.keys()):
                 class_label = int(fol_class[0])
@@ -548,3 +513,85 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
                                 output_images=main_images_path,
                                 output_labels=labels_path,
                                 aug_config= aug_config)
+
+
+def clear_dataset_images(data_yaml, is_disease=False, target='augmented', confirm_prompt=True):
+    """
+    Deletes images (and matching label files, if applicable) from the dataset.
+
+    Parameters:
+        data_yaml: dict with 'train' key pointing to the images path
+        is_disease: True for classifier-style folders (class subfolders, no label files)
+                    False for YOLO-style (flat images/ + labels/)
+        target: 'augmented' -> only files with 'aug' in the name
+                'original'  -> only files WITHOUT 'aug' in the name
+                'all'       -> everything
+        confirm_prompt: if True, asks for y/n confirmation before deleting
+    """
+
+    main_images_path = data_yaml['train']
+
+    def matches_target(fname):
+        if target == 'augmented':
+            return 'aug' in fname
+        elif target == 'original':
+            return 'aug' not in fname
+        elif target == 'all':
+            return True
+        else:
+            raise ValueError(f"Invalid target: {target}. Use 'augmented', 'original', or 'all'.")
+
+    # ---- collect files to delete ----
+    files_to_delete = []
+
+    if is_disease:
+        all_fol_classes = os.listdir(main_images_path)
+        for fol_class in all_fol_classes:
+            fol_class_path = os.path.join(main_images_path, fol_class)
+            all_files_no_ext = [item.split('.')[0] for item in os.listdir(fol_class_path)]
+            files_to_delete += [
+                os.path.join(fol_class_path, f + '.png')
+                for f in all_files_no_ext if matches_target(f)
+            ]
+    else:
+        all_files_no_ext = [item.split('.')[0] for item in os.listdir(main_images_path)]
+        files_to_delete = [
+            os.path.join(main_images_path, f + '.png')
+            for f in all_files_no_ext if matches_target(f)
+        ]
+
+    n_files = len(files_to_delete)
+
+    if n_files == 0:
+        print(f"No '{target}' images found. Nothing to delete.")
+        return
+
+    print(f"Found {n_files} images matching target='{target}'.")
+
+    if confirm_prompt:
+        confirm = input(f"Delete all {n_files} images? - (y or n): ").lower().strip()
+        if confirm != 'y':
+            print("Cancelled. No files deleted.")
+            return
+
+    # ---- delete ----
+    deleted_count = 0
+    failed_count = 0
+
+    for fpath in tqdm(files_to_delete, desc=f'Deleting {target} images...'):
+        try:
+            os.remove(fpath)
+
+            if not is_disease:
+                label_path = fpath.replace('images', 'labels').replace('.png', '.txt')
+                if os.path.exists(label_path):
+                    os.remove(label_path)
+
+            deleted_count += 1
+        except Exception as e:
+            print(f"Failed to remove {fpath}: {e}")
+            failed_count += 1
+
+    print(f"Deleted {deleted_count} images. Failed: {failed_count}.")
+    if failed_count > 0:
+        print("Check the failed deletions above and re-run if needed.")
