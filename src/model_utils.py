@@ -177,7 +177,7 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
         results = quadrant_model.predict(img_path, conf=conf_threshold, verbose=False)[0]
         n_predicted_boxes = len(results.boxes)
 
-        for n,box in enumerate(results.boxes):
+        for n,box in enumerate(results.boxes,start=1):
 
             quad_class_id = int(box.cls[0])
             quad_name = quadrant_model.names[quad_class_id]
@@ -234,8 +234,8 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
                 img_out_path = os.path.join(output_root, 'images', f"{base_name}.png")
                 label_out_path = os.path.join(output_root, 'labels', f"{base_name}.txt")
 
-                if n > 4:
-                    print(f'Warning: Model Detected {n_predicted_boxes} Boxes And Predicted {quad_name} Again In This Image Name: {fname.split('.')[0]}')
+                if n > 4 and n == n_predicted_boxes:
+                    print(f'Warning: Model Detected {n_predicted_boxes} Boxes And Predicted {quad_name} Again With {confidence} Confidence In This Image Name: {fname.split('.')[0]}')
                     if os.path.exists(img_out_path):
                         print("Skipped Successfuly!")
                         continue
@@ -243,7 +243,7 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
                     print(f'Warning: Model Detected {n_predicted_boxes} Boxes And Can\'t Predict {quadrant_model.names[n]} In This Image Name: {fname.split('.')[0]}')
                     
                 if confidence < 0.6:
-                    print(f"Warning: Low Confidence Alert! \nImage Name: {fname.split('.')[0]} Got {confidence} At Quadrant {quad_name}\n")
+                    print(f"Warning: Low Confidence Alert! Got {confidence} At Quadrant {quad_name} In Image Name: {fname.split('.')[0]}")
                 
                 if os.path.exists(img_out_path):
                     raise FileExistsError(
