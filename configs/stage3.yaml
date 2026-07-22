@@ -1,6 +1,8 @@
-original_images_path: ../Data/Raw/DENTEX CHALLENGE 2023/Training_data/quadrant-enumeration-disease/xrays
-original_json_path: ../Data/Raw/DENTEX CHALLENGE 2023/Training_data/quadrant-enumeration-disease/train_quadrant_enumeration_disease.json
+paths:
+  original_images_path: ../Data/Raw/DENTEX CHALLENGE 2023/Training_data/quadrant-enumeration-disease/xrays
+  original_json_path: ../Data/Raw/DENTEX CHALLENGE 2023/Training_data/quadrant-enumeration-disease/train_quadrant_enumeration_disease.json
+  s3_main_path: ..\Data\Processed\Stage 3 (Disease Classifier)
+  runs_s3_output: ..\Runs\Stage 3
 
-s3_main_path: ..\Data\Processed\Stage 3 (Disease Classifier)
-data: ..\Data\Processed\Stage 3 (Disease Classifier)\data.yaml
-runs_s3_output: ..\Runs\Stage 3
+model_args:
+  data: ..\Data\Processed\Stage 3 (Disease Classifier)\data.yaml
