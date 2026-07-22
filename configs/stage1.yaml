@@ -6,6 +6,7 @@ paths:
 
 model_args:
   data: ..\Data\Processed\Stage 1 (Quadrant Detection)\data.yaml
+  model: ../Models/yolo26s.pt
   epochs: 50
   save: True
   imgsz: 1024
