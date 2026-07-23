@@ -244,7 +244,8 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
                     log_records.append({
                         'File_Name': fname, 'event': 'duplicate_quad',
                         'quad': quad_name, 'confidence': confidence,
-                        'n_boxes': n_predicted_boxes
+                        'n_boxes': n_predicted_boxes,
+                        'crop_area': crop_h * crop_w
                     })
                     if verbose:
                         print(f'Warning: Model Detected {n_predicted_boxes} Boxes And Predicted {quad_name} Again With {confidence} Confidence In This Image Name: {fname.split(".")[0]}')
@@ -259,7 +260,8 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
                     log_records.append({
                         'File_Name': fname, 'event': 'low_confidence',
                         'quad': quad_name, 'confidence': confidence,
-                        'n_boxes': n_predicted_boxes
+                        'n_boxes': n_predicted_boxes,
+                        'crop_area': crop_h * crop_w
                     })
                     if verbose:
                         print(f"Warning: Low Confidence Alert! Got {confidence} At Quadrant {quad_name} In Image Name: {fname.split('.')[0]}")
@@ -273,14 +275,16 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
         log_records.append({
             'File_Name': fname, 'event': 'boxes_detected',
             'quad': None, 'confidence': None,
-            'n_boxes': n_predicted_boxes
+            'n_boxes': n_predicted_boxes,
+            'crop_area': crop_h * crop_w
         })
 
         if expected_quads:
             log_records.append({
                 'File_Name': fname, 'event': 'missing_quad',
                 'quad': ' & '.join(expected_quads), 'confidence': None,
-                'n_boxes': n_predicted_boxes
+                'n_boxes': n_predicted_boxes,
+                'crop_area': None
             })
             if verbose:
                 missing_str = ' & '.join(expected_quads) if len(expected_quads) >= 2 else expected_quads[0]
@@ -290,7 +294,8 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
             visualize_augmentation(all_images, all_bboxes, all_labels, titles=all_filenames)
             break
 
-
+    log_df = pd.DataFrame(log_records)
+    return log_df
 
 def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_worst_csv=None):
 
