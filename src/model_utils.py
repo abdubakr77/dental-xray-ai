@@ -388,4 +388,27 @@ def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_worst_cs
         else:
             print("\nNo clear duplicate-missing confusion pattern found in the same images.")
 
-    
+    # ---- 7. Worst Images had Misleads ----
+    problem_events = log_df[log_df['event'].isin(['duplicate_quad', 'missing_quad', 'low_confidence'])]
+    worst_images = problem_events['File_Name'].value_counts().head(10)
+    if len(worst_images) > 0:
+        print("\nTop 10 problematic images (most warnings):")
+        print(worst_images)
+
+    # ---- 8. Export CSV (Optional) ----
+    if export_worst_csv:
+        worst_df = problem_events[problem_events['File_Name'].isin(worst_images.index)]
+        worst_df.to_csv(export_worst_csv, index=False)
+        print(f"\nExported worst images log to: {export_worst_csv}")
+
+    return {
+        'total_images': boxes_df['File_Name'].nunique(),
+        'correct_4_boxes': correct,
+        'over_detected': over,
+        'under_detected': under,
+        'duplicate_events': len(dup_df),
+        'missing_events': len(missing_df),
+        'low_confidence_events': len(low_conf_df),
+        'avg_high_confidence': high_conf_avg if len(all_conf_events) > 0 else None,
+        'avg_low_confidence': low_conf_avg if len(all_conf_events) > 0 else None,
+    }
