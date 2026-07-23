@@ -132,7 +132,8 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
                                     output_root=os.getcwd(),
                                     conf_threshold=0.3,
                                     debugging=False, debug_limit=5,
-                                    clear_existing=True):
+                                    clear_existing=True,
+                                    verbose=False):
 
     # ---- check + clear existing images/labels ----
     if clear_existing and not debugging:
@@ -166,6 +167,7 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
 
     debug_count = 0
     all_images, all_labels, all_bboxes, all_filenames = [], [], [], []
+    log_records = []
 
     for fname in tqdm(enum_df['File_Name'].unique(), desc='Cropping using trained quadrant model'):
 
@@ -178,7 +180,6 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
         results = quadrant_model.predict(img_path, conf=conf_threshold, verbose=False)[0]
         n_predicted_boxes = len(results.boxes)
         expected_quads = ["Upper Right","Upper Left","Lower Left","Lower Right"]
-        # detected_quads = []
 
         for n,box in enumerate(results.boxes,start=1):
 
@@ -237,30 +238,53 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
                 img_out_path = os.path.join(output_root, 'images', f"{base_name}.png")
                 label_out_path = os.path.join(output_root, 'labels', f"{base_name}.txt")
                 
-                if quad_name not in expected_quads:
-                    print(f'Warning: Model Detected {n_predicted_boxes} Boxes And Predicted {quad_name} Again With {confidence} Confidence In This Image Name: {fname.split('.')[0]}')
+                is_duplicate = quad_name not in expected_quads
+
+                if is_duplicate:
+                    log_records.append({
+                        'File_Name': fname, 'event': 'duplicate_quad',
+                        'quad': quad_name, 'confidence': confidence,
+                        'n_boxes': n_predicted_boxes
+                    })
+                    if verbose:
+                        print(f'Warning: Model Detected {n_predicted_boxes} Boxes And Predicted {quad_name} Again With {confidence} Confidence In This Image Name: {fname.split(".")[0]}')
                     if os.path.exists(img_out_path):
-                        print("Skipped Successfuly!")
+                        if verbose:
+                            print("Skipped Successfuly!")
                         continue
                 
                 expected_quads.remove(quad_name)
                     
                 if confidence < 0.6:
-                    print(f"Warning: Low Confidence Alert! Got {confidence} At Quadrant {quad_name} In Image Name: {fname.split('.')[0]}")
-                
-                if os.path.exists(img_out_path):
-                    raise FileExistsError(
-                        f"Error: File already exists at {img_out_path}.\n"
-                        f"Set clear_existing=True and re-run, or delete manually first."
-                    )
+                    log_records.append({
+                        'File_Name': fname, 'event': 'low_confidence',
+                        'quad': quad_name, 'confidence': confidence,
+                        'n_boxes': n_predicted_boxes
+                    })
+                    if verbose:
+                        print(f"Warning: Low Confidence Alert! Got {confidence} At Quadrant {quad_name} In Image Name: {fname.split('.')[0]}")
+
 
                 cv2.imwrite(img_out_path, cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR))
                 with open(label_out_path, 'w') as f:
                     for cls_id, cx, cy, nw, nh in new_labels:
                         f.write(f"{cls_id} {cx} {cy} {nw} {nh}\n")
 
+        log_records.append({
+            'File_Name': fname, 'event': 'boxes_detected',
+            'quad': None, 'confidence': None,
+            'n_boxes': n_predicted_boxes
+        })
+
         if expected_quads:
-            print(f'Warning: Model Detected {n_predicted_boxes} Boxes And Can\'t Predict {' & '.join(expected_quads) if len(expected_quads)>=2 else expected_quads[0]} In This Image Name: {fname.split('.')[0]}')
+            log_records.append({
+                'File_Name': fname, 'event': 'missing_quad',
+                'quad': ' & '.join(expected_quads), 'confidence': None,
+                'n_boxes': n_predicted_boxes
+            })
+            if verbose:
+                missing_str = ' & '.join(expected_quads) if len(expected_quads) >= 2 else expected_quads[0]
+                print(f"Warning: Model Detected {n_predicted_boxes} Boxes And Can't Predict {missing_str} In This Image Name: {fname.split('.')[0]}")
 
         if debugging and debug_count >= debug_limit:
             visualize_augmentation(all_images, all_bboxes, all_labels, titles=all_filenames)
