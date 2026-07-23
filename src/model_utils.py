@@ -176,6 +176,8 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         results = quadrant_model.predict(img_path, conf=conf_threshold, verbose=False)[0]
         n_predicted_boxes = len(results.boxes)
+        expected_quads = ["Upper Right","Upper Left","Lower Left","Lower Right"]
+        # detected_quads = []
 
         for n,box in enumerate(results.boxes,start=1):
 
@@ -233,14 +235,14 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
             else:
                 img_out_path = os.path.join(output_root, 'images', f"{base_name}.png")
                 label_out_path = os.path.join(output_root, 'labels', f"{base_name}.txt")
-
-                if n > 4 and n == n_predicted_boxes:
+                
+                if quad_name not in expected_quads:
                     print(f'Warning: Model Detected {n_predicted_boxes} Boxes And Predicted {quad_name} Again With {confidence} Confidence In This Image Name: {fname.split('.')[0]}')
                     if os.path.exists(img_out_path):
                         print("Skipped Successfuly!")
                         continue
-                elif n < 4 and n == n_predicted_boxes:
-                    print(f'Warning: Model Detected {n_predicted_boxes} Boxes And Can\'t Predict {quadrant_model.names[n]} In This Image Name: {fname.split('.')[0]}')
+                
+                expected_quads.remove(quad_name)
                     
                 if confidence < 0.6:
                     print(f"Warning: Low Confidence Alert! Got {confidence} At Quadrant {quad_name} In Image Name: {fname.split('.')[0]}")
@@ -255,6 +257,9 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
                 with open(label_out_path, 'w') as f:
                     for cls_id, cx, cy, nw, nh in new_labels:
                         f.write(f"{cls_id} {cx} {cy} {nw} {nh}\n")
+
+        if expected_quads:
+            print(f'Warning: Model Detected {n_predicted_boxes} Boxes And Can\'t Predict {' & '.join(expected_quads) if len(expected_quads)>=2 else expected_quads[0]} In This Image Name: {fname.split('.')[0]}')
 
         if debugging and debug_count >= debug_limit:
             visualize_augmentation(all_images, all_bboxes, all_labels, titles=all_filenames)
