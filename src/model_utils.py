@@ -356,4 +356,36 @@ def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_worst_cs
         if gap is not None:
             print(f"Confidence Gap: {gap:.3f}  ({'large, model is inconsistent' if gap > 0.4 else 'moderate' if gap > 0.2 else 'small, model is fairly stable'})")
 
+    # ---- 6. Heatmap: (duplicate confusion) ----
+    if len(dup_df) > 0:
+        confusion_pairs = []
+        for fname in dup_df['File_Name'].unique():
+            dup_quads = dup_df[dup_df['File_Name'] == fname]['quad'].tolist()
+            missing_quads_for_img = log_df[(log_df['File_Name'] == fname) & (log_df['event'] == 'missing_quad')]
+            if len(missing_quads_for_img) > 0:
+                missing_list = missing_quads_for_img.iloc[0]['quad'].split(' & ')
+                for dq in dup_quads:
+                    for mq in missing_list:
+                        confusion_pairs.append((dq, mq))
+
+        if confusion_pairs:
+            confusion_df = pd.DataFrame(confusion_pairs, columns=['Predicted_Extra', 'Actually_Missing'])
+            pivot = confusion_df.groupby(['Predicted_Extra', 'Actually_Missing']).size().unstack(fill_value=0)
+
+            plt.figure(figsize=(8, 6))
+            plt.imshow(pivot, cmap='Reds')
+            plt.colorbar(label='Count')
+            plt.xticks(range(len(pivot.columns)), pivot.columns, rotation=45)
+            plt.yticks(range(len(pivot.index)), pivot.index)
+            plt.xlabel('Actually Missing Quadrant')
+            plt.ylabel('Predicted Extra (Duplicate) Quadrant')
+            plt.title('Quadrant Confusion: Duplicate vs Missing (same image)')
+            for i in range(len(pivot.index)):
+                for j in range(len(pivot.columns)):
+                    plt.text(j, i, pivot.iloc[i, j], ha='center', va='center')
+            plt.tight_layout()
+            plt.show()
+        else:
+            print("\nNo clear duplicate-missing confusion pattern found in the same images.")
+
     
