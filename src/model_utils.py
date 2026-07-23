@@ -344,4 +344,16 @@ def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_worst_cs
     else:
         print("No low confidence predictions found.")
 
+    # ---- 5. Calculate the Avg for high confidence & low confidence ----
+    all_conf_events = log_df[log_df['confidence'].notna()]
+    if len(all_conf_events) > 0:
+        high_conf_avg = all_conf_events[all_conf_events['confidence'] >= low_conf_threshold]['confidence'].mean()
+        low_conf_avg = all_conf_events[all_conf_events['confidence'] < low_conf_threshold]['confidence'].mean()
+        gap = (high_conf_avg - low_conf_avg) if not np.isnan(low_conf_avg) else None
+
+        print(f"\nAverage HIGH confidence (>= {low_conf_threshold}): {high_conf_avg:.3f}")
+        print(f"Average LOW confidence  (< {low_conf_threshold}): {low_conf_avg:.3f}" if not np.isnan(low_conf_avg) else "Average LOW confidence: N/A (no low conf events)")
+        if gap is not None:
+            print(f"Confidence Gap: {gap:.3f}  ({'large, model is inconsistent' if gap > 0.4 else 'moderate' if gap > 0.2 else 'small, model is fairly stable'})")
+
     
