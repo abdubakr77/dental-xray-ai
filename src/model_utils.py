@@ -297,4 +297,18 @@ def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_worst_cs
     plt.tight_layout()
     plt.show()
 
+    # ---- 2. (duplicate for each quad) ----
+    dup_df = log_df[log_df['event'] == 'duplicate_quad']
+    if len(dup_df) > 0:
+        plt.figure(figsize=(8, 5))
+        dup_counts = dup_df['quad'].value_counts()
+        plt.bar(dup_counts.index, dup_counts.values, color='#FF9800')
+        plt.title('Duplicate Predictions per Quadrant')
+        plt.ylabel('Count')
+        for i, v in enumerate(dup_counts.values):
+            plt.text(i, v + 0.3, str(v), ha='center')
+        plt.show()
+    else:
+        print("No duplicate quadrant predictions found.")
+
     
