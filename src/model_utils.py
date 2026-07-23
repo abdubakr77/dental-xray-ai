@@ -326,4 +326,22 @@ def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_worst_cs
     else:
         print("No missing quadrant predictions found.")
 
+    # ---- 4. Distribution Low Confidence Deapend on the quadrant ----
+    low_conf_df = log_df[log_df['event'] == 'low_confidence']
+    if len(low_conf_df) > 0:
+        plt.figure(figsize=(10, 5))
+        for quad in low_conf_df['quad'].unique():
+            subset = low_conf_df[low_conf_df['quad'] == quad]
+            plt.scatter([quad] * len(subset), subset['confidence'], alpha=0.6)
+        plt.axhline(y=low_conf_threshold, color='red', linestyle='--', label=f'Threshold ({low_conf_threshold})')
+        plt.title('Low Confidence Predictions by Quadrant')
+        plt.ylabel('Confidence')
+        plt.legend()
+        plt.show()
+
+        print(f"\nTotal low confidence warnings: {len(low_conf_df)}")
+        print(low_conf_df.groupby('quad')['confidence'].agg(['count', 'mean', 'min']))
+    else:
+        print("No low confidence predictions found.")
+
     
