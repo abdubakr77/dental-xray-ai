@@ -311,4 +311,19 @@ def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_worst_cs
     else:
         print("No duplicate quadrant predictions found.")
 
+    # ---- 3. missing for each quad----
+    missing_df = log_df[log_df['event'] == 'missing_quad']
+    if len(missing_df) > 0:
+        missing_expanded = missing_df['quad'].str.split(' & ').explode()
+        plt.figure(figsize=(8, 5))
+        missing_counts = missing_expanded.value_counts()
+        plt.bar(missing_counts.index, missing_counts.values, color='#F44336')
+        plt.title('Missing Predictions per Quadrant')
+        plt.ylabel('Count')
+        for i, v in enumerate(missing_counts.values):
+            plt.text(i, v + 0.3, str(v), ha='center')
+        plt.show()
+    else:
+        print("No missing quadrant predictions found.")
+
     
