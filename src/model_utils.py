@@ -4,6 +4,7 @@ import numpy as np
 import os
 from src.vis import visualize_augmentation
 from tqdm import tqdm
+import pandas as pd
 
 def draw_corner_box(img, x1, y1, x2, y2, label_name, confidence, color, length, thickness):
     """
@@ -264,3 +265,36 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
         if debugging and debug_count >= debug_limit:
             visualize_augmentation(all_images, all_bboxes, all_labels, titles=all_filenames)
             break
+
+
+
+def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_worst_csv=None):
+
+    print(f"Total images processed: {log_df['File_Name'].nunique()}")
+    print(f"Total events logged: {len(log_df)}\n")
+
+    # ---- 1. boxes ----
+    boxes_df = log_df[log_df['event'] == 'boxes_detected'][['File_Name', 'n_boxes']].drop_duplicates()
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+    box_counts = boxes_df['n_boxes'].value_counts().sort_index()
+    axes[0].bar(box_counts.index.astype(str), box_counts.values, color='steelblue')
+    axes[0].set_title('Number of Images by Detected Box Count')
+    axes[0].set_xlabel('Boxes Detected')
+    axes[0].set_ylabel('Number of Images')
+    for i, v in enumerate(box_counts.values):
+        axes[0].text(i, v + 0.5, str(v), ha='center')
+
+    correct = (boxes_df['n_boxes'] == 4).sum()
+    over = (boxes_df['n_boxes'] > 4).sum()
+    under = (boxes_df['n_boxes'] < 4).sum()
+    axes[1].pie([correct, over, under],
+                labels=[f'Exactly 4\n({correct})', f'More than 4\n({over})', f'Less than 4\n({under})'],
+                colors=['#4CAF50', '#FF9800', '#F44336'], autopct='%1.1f%%')
+    axes[1].set_title('Detection Accuracy Summary')
+
+    plt.tight_layout()
+    plt.show()
+
+    
