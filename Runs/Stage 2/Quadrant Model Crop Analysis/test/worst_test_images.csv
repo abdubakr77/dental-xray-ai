@@ -1,0 +1,4 @@
+File_Name,event,quad,confidence,n_boxes,crop_area
+train_137.png,low_confidence,Upper Left,0.48,4,286452
+train_575.png,low_confidence,Lower Right,0.52,5,377804
+train_575.png,duplicate_quad,Lower Right,0.36,5,373680
