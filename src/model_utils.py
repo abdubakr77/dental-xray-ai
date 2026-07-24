@@ -266,7 +266,13 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
                     if verbose:
                         print(f"Warning: Low Confidence Alert! Got {confidence} At Quadrant {quad_name} In Image Name: {fname.split('.')[0]}")
 
-
+                log_records.append({
+                    'File_Name': fname, 'event': 'successful_detection',
+                    'quad': quad_name, 'confidence': confidence,
+                    'n_boxes': n_predicted_boxes,
+                    'crop_area': crop_h * crop_w
+                })
+                
                 cv2.imwrite(img_out_path, cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR))
                 with open(label_out_path, 'w') as f:
                     for cls_id, cx, cy, nw, nh in new_labels:
