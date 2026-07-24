@@ -1,0 +1,17 @@
+File_Name,event,quad,confidence,n_boxes,crop_area
+train_176.png,duplicate_quad,Lower Left,0.41,5,415938.0
+train_502.png,low_confidence,Lower Left,0.35,3,293088.0
+train_502.png,missing_quad,Lower Right,,3,
+train_266.png,low_confidence,Upper Left,0.48,4,274866.0
+train_273.png,low_confidence,Lower Right,0.45,3,299460.0
+train_273.png,duplicate_quad,Lower Right,0.38,3,300456.0
+train_273.png,low_confidence,Upper Left,0.34,3,348390.0
+train_273.png,missing_quad,Upper Right & Lower Left,,3,
+train_255.png,missing_quad,Lower Right,,3,
+train_44.png,missing_quad,Lower Right,,3,
+train_170.png,low_confidence,Upper Right,0.55,4,284849.0
+train_615.png,low_confidence,Lower Right,0.58,4,357330.0
+train_214.png,duplicate_quad,Lower Right,0.34,6,416585.0
+train_214.png,duplicate_quad,Upper Left,0.34,6,307125.0
+train_174.png,low_confidence,Upper Left,0.58,5,363069.0
+train_174.png,duplicate_quad,Upper Left,0.34,5,361692.0
