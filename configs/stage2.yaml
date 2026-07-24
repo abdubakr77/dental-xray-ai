@@ -7,3 +7,36 @@ paths:
 
 model_args:
   data: ..\Data\Processed\Stage 2 (Enumeration Detection)\data.yaml
+  model: ../Models/yolo26s.pt
+  epochs: 100
+  save: True
+  imgsz: 1024
+  batch: 8
+  patience: 15
+  optimizer: AdamW
+  lr0: 0.001
+  lrf: 0.01
+  plots: True
+  verbose: True
+  device: cuda
+  workers: 4
+  project: Runs
+  name: Stage 2
+  save_dir: ..\Runs\Stage 2
+  auto_augment: None
+  augment: False
+  mosaic: 0.0
+  mixup: 0.0
+  copy_paste: 0.0
+  cutmix: 0.0
+  hsv_h: 0.0
+  hsv_s: 0.0
+  hsv_v: 0.0
+  degrees: 0.0
+  translate: 0.0
+  scale: 0.0
+  shear: 0.0
+  perspective: 0.0
+  flipud: 0.0
+  fliplr: 0.0
+  erasing: 0.0
