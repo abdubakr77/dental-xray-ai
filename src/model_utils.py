@@ -128,7 +128,7 @@ def smart_predict(yolo_model, images_path, specific_image_name=None, conf_thresh
 
 
 
-def export_enum_by_quad_using_model(quadrant_model, enum_images_path, annotations_df=None,
+def export_enum_by_quad_using_model(quadrant_model, original_images_path, annotations_df=None,
                                     output_root=os.getcwd(),
                                     conf_threshold=0.3,
                                     debugging=False, debug_limit=5,
@@ -178,7 +178,7 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, annotation
         if debugging:
             fname = np.random.choice(file_list)
 
-        img_path = os.path.join(enum_images_path, fname)
+        img_path = os.path.join(original_images_path, fname)
         img = cv2.imread(img_path)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         results = quadrant_model.predict(img_path, conf=conf_threshold, verbose=False)[0]
