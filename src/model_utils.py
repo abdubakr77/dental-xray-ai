@@ -447,3 +447,70 @@ def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_worst_cs
         'avg_high_confidence': high_conf_avg if len(all_conf_events) > 0 else None,
         'avg_low_confidence': low_conf_avg if len(all_conf_events) > 0 else None,
     }
+
+
+
+def compare_best_vs_last(results_csv_path):
+    """
+    Takes the path to results.csv, compares the best epoch (based on mAP50-95)
+    against the last epoch, and reports which one is better.
+    """
+    df = pd.read_csv(results_csv_path)
+    df.columns = df.columns.str.strip()
+
+    if "epoch" not in df.columns:
+        print("Column 'epoch' not found in the file.")
+        return
+
+    map50_col = [c for c in df.columns if "mAP50" in c and "50-95" not in c]
+    map50_95_col = [c for c in df.columns if "mAP50-95" in c]
+
+    if not map50_col or not map50_95_col:
+        print("Could not find mAP50 or mAP50-95 columns in the file.")
+        return
+
+    m50 = map50_col[0]
+    m50_95 = map50_95_col[0]
+
+    best_idx = df[m50_95].idxmax()
+    best_row = df.loc[best_idx]
+    best_epoch = int(best_row["epoch"])
+
+    last_row = df.iloc[-1]
+    last_epoch = int(last_row["epoch"])
+
+    best_map50 = best_row[m50]
+    best_map50_95 = best_row[m50_95]
+
+    last_map50 = last_row[m50]
+    last_map50_95 = last_row[m50_95]
+
+    print("Comparison: Best Epoch vs Last Epoch")
+    print(f"Best Epoch ({best_epoch + 1}):")
+    print(f"  mAP50: {best_map50:.4f}")
+    print(f"  mAP50-95: {best_map50_95:.4f}")
+
+    print(f"Last Epoch ({last_epoch + 1}):")
+    print(f"  mAP50: {last_map50:.4f}")
+    print(f"  mAP50-95: {last_map50_95:.4f}")
+
+    diff_map50_95 = best_map50_95 - last_map50_95
+
+    print("Verdict:")
+    if best_epoch == last_epoch:
+        print("Best and Last are the same epoch, so the last epoch is also the best one.")
+    elif diff_map50_95 > 0.001:
+        print(f"Best Epoch ({best_epoch + 1}) is better than Last Epoch ({last_epoch + 1}).")
+        print(f"Difference in mAP50-95: +{diff_map50_95:.4f}")
+        print("This gap can indicate some overfitting toward the end of training.")
+    else:
+        print("The difference is very small, meaning the model was fairly stable by the end.")
+
+    return {
+        "best_epoch": best_epoch + 1,
+        "last_epoch": last_epoch + 1,
+        "best_map50": best_map50,
+        "best_map50_95": best_map50_95,
+        "last_map50": last_map50,
+        "last_map50_95": last_map50_95,
+    }
