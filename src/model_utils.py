@@ -128,7 +128,7 @@ def smart_predict(yolo_model, images_path, specific_image_name=None, conf_thresh
 
 
 
-def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df=None,
+def export_enum_by_quad_using_model(quadrant_model, enum_images_path, annotations_df=None,
                                     output_root=os.getcwd(),
                                     conf_threshold=0.3,
                                     debugging=False, debug_limit=5,
@@ -171,10 +171,7 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df=No
     all_images, all_labels, all_bboxes, all_filenames = [], [], [], []
     log_records = []
 
-    if export_labels:
-        file_list = enum_df['File_Name'].unique()
-    else:
-        file_list = os.listdir(enum_images_path)
+    file_list = annotations_df['File_Name'].unique()
 
     for fname in tqdm(file_list, desc='Cropping using trained quadrant model'):
 
@@ -186,7 +183,7 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df=No
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         results = quadrant_model.predict(img_path, conf=conf_threshold, verbose=False)[0]
         n_predicted_boxes = len(results.boxes)
-        expected_quads = ["Upper Right","Upper Left","Lower Left","Lower Right"]
+        expected_quads = ["Upper Right", "Upper Left", "Lower Left", "Lower Right"]
 
         for box in results.boxes:
 
@@ -201,7 +198,7 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df=No
 
             new_labels = []
             if export_labels:
-                teeth_rows = enum_df[(enum_df['File_Name'] == fname) & (enum_df['Quad'] == quad_name)]
+                teeth_rows = annotations_df[(annotations_df['File_Name'] == fname) & (annotations_df['Quad'] == quad_name)]
 
                 for _, row in teeth_rows.iterrows():
                     tx, ty, tw, th = list(row['Bbox'])
