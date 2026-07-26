@@ -2,7 +2,7 @@ import yaml
 
 best_fitness = 0.0
 wait_count = 0
-with open(f'../configs/stage{input('What Stage You Are In Right Now? (1 or 2): ').strip()}.yaml','r') as f: patience_limit = yaml.safe_load(f)['model_args']['patience']
+with open(f'../configs/stage{input('What Stage You Are In Right Now? (1 or 2): ').strip()}.yaml','r') as f: patience_limit = yaml.safe_load(f)['model_args']['patience']; print(f"Patience Limit Is {patience_limit} Loaded Successfuly from the config file!")
 
 
 def on_fit_epoch_end(trainer):
