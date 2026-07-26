@@ -4,6 +4,9 @@ paths:
   s2_main_path: ..\Data\Processed\Stage 2 (Enumeration Detection)
   runs_s2_output: ..\Runs\Stage 2
 
+  # (diagnosis quadrants)
+  diagnosis_quadrants_train_path: ..\Data\Processed\Stage 2 (Enumeration Detection)\Diagnosis Quadrants Train
+  runs_s2_continued_output: ..\Runs\Stage 2 Continued
 
 model_args:
   data: ..\Data\Processed\Stage 2 (Enumeration Detection)\data.yaml
@@ -23,6 +26,42 @@ model_args:
   project: Runs
   name: Stage 2
   save_dir: ..\Runs\Stage 2
+  auto_augment: None
+  augment: False
+  mosaic: 0.0
+  mixup: 0.0
+  copy_paste: 0.0
+  cutmix: 0.0
+  hsv_h: 0.0
+  hsv_s: 0.0
+  hsv_v: 0.0
+  degrees: 0.0
+  translate: 0.0
+  scale: 0.0
+  shear: 0.0
+  perspective: 0.0
+  flipud: 0.0
+  fliplr: 0.0
+  erasing: 0.0
+
+continued_training_args:
+  data: ..\Data\Processed\Stage 2 (Enumeration Detection)\diagnosis_quadrants_train\data.yaml
+  model: ..\Runs\Stage 2\weights\best.pt
+  epochs: 50
+  save: True
+  imgsz: 1024
+  batch: 8
+  patience: 15
+  optimizer: AdamW
+  lr0: 0.0005
+  lrf: 0.01
+  plots: True
+  verbose: True
+  device: cuda
+  workers: 4
+  project: Runs
+  name: Stage 2 Continued
+  save_dir: ..\Runs\Stage 2 Continued
   auto_augment: None
   augment: False
   mosaic: 0.0
