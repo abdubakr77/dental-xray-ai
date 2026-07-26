@@ -12,7 +12,7 @@ model_args:
   save: True
   imgsz: 1024
   batch: 8
-  patience: 15
+  patience: 20
   optimizer: AdamW
   lr0: 0.005
   lrf: 0.01
