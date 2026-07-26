@@ -128,12 +128,13 @@ def smart_predict(yolo_model, images_path, specific_image_name=None, conf_thresh
 
 
 
-def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
+def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df=None,
                                     output_root=os.getcwd(),
                                     conf_threshold=0.3,
                                     debugging=False, debug_limit=5,
                                     clear_existing=True,
-                                    verbose=False):
+                                    export_labels=True,
+                                    verbose=False,):
 
     # ---- check + clear existing images/labels ----
     if clear_existing and not debugging:
@@ -141,7 +142,7 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
         labels_path = os.path.join(output_root, 'labels')
 
         any_existing = (os.path.exists(imgs_path) and len(os.listdir(imgs_path)) > 0) or \
-                        (os.path.exists(labels_path) and len(os.listdir(labels_path)) > 0)
+                        (export_labels and os.path.exists(labels_path) and len(os.listdir(labels_path)) > 0)
 
         if any_existing:
             print("Warning: Found existing images/labels in the output directory.")
@@ -150,7 +151,8 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
             if confirm == 'y':
                 deleted_count = 0
                 failed_count = 0
-                for sub_path in [imgs_path, labels_path]:
+                paths_to_clear = [imgs_path, labels_path] if export_labels else [imgs_path]
+                for sub_path in paths_to_clear:
                     if not os.path.exists(sub_path):
                         continue
                     for f in os.listdir(sub_path):
@@ -169,10 +171,15 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
     all_images, all_labels, all_bboxes, all_filenames = [], [], [], []
     log_records = []
 
-    for fname in tqdm(enum_df['File_Name'].unique(), desc='Cropping using trained quadrant model'):
+    if export_labels:
+        file_list = enum_df['File_Name'].unique()
+    else:
+        file_list = os.listdir(enum_images_path)
+
+    for fname in tqdm(file_list, desc='Cropping using trained quadrant model'):
 
         if debugging:
-            fname = np.random.choice(enum_df['File_Name'].unique())
+            fname = np.random.choice(file_list)
 
         img_path = os.path.join(enum_images_path, fname)
         img = cv2.imread(img_path)
@@ -181,7 +188,7 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
         n_predicted_boxes = len(results.boxes)
         expected_quads = ["Upper Right","Upper Left","Lower Left","Lower Right"]
 
-        for n,box in enumerate(results.boxes,start=1):
+        for box in results.boxes:
 
             quad_class_id = int(box.cls[0])
             quad_name = quadrant_model.names[quad_class_id]
@@ -192,34 +199,35 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
             if crop_h == 0 or crop_w == 0:
                 continue
 
-            teeth_rows = enum_df[(enum_df['File_Name'] == fname) & (enum_df['Quad'] == quad_name)]
-
             new_labels = []
-            for _, row in teeth_rows.iterrows():
-                tx, ty, tw, th = list(row['Bbox'])
-                new_x = tx - x1
-                new_y = ty - y1
+            if export_labels:
+                teeth_rows = enum_df[(enum_df['File_Name'] == fname) & (enum_df['Quad'] == quad_name)]
 
-                clipped_x1 = max(new_x, 0)
-                clipped_y1 = max(new_y, 0)
-                clipped_x2 = min(new_x + tw, crop_w)
-                clipped_y2 = min(new_y + th, crop_h)
+                for _, row in teeth_rows.iterrows():
+                    tx, ty, tw, th = list(row['Bbox'])
+                    new_x = tx - x1
+                    new_y = ty - y1
 
-                clipped_w = clipped_x2 - clipped_x1
-                clipped_h = clipped_y2 - clipped_y1
+                    clipped_x1 = max(new_x, 0)
+                    clipped_y1 = max(new_y, 0)
+                    clipped_x2 = min(new_x + tw, crop_w)
+                    clipped_y2 = min(new_y + th, crop_h)
 
-                if clipped_w <= 0 or clipped_h <= 0:
+                    clipped_w = clipped_x2 - clipped_x1
+                    clipped_h = clipped_y2 - clipped_y1
+
+                    if clipped_w <= 0 or clipped_h <= 0:
+                        continue
+
+                    cx = (clipped_x1 + clipped_w / 2) / crop_w
+                    cy = (clipped_y1 + clipped_h / 2) / crop_h
+                    nw = clipped_w / crop_w
+                    nh = clipped_h / crop_h
+
+                    new_labels.append((row['Enumeration'], cx, cy, nw, nh))
+
+                if not new_labels:
                     continue
-
-                cx = (clipped_x1 + clipped_w / 2) / crop_w
-                cy = (clipped_y1 + clipped_h / 2) / crop_h
-                nw = clipped_w / crop_w
-                nh = clipped_h / crop_h
-
-                new_labels.append((row['Enumeration'], cx, cy, nw, nh))
-
-            if not new_labels:
-                continue
 
             base_name = f"{fname.split('.')[0]}_{quad_name.replace(' ', '')}"
 
@@ -237,7 +245,7 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
             else:
                 img_out_path = os.path.join(output_root, 'images', f"{base_name}.png")
                 label_out_path = os.path.join(output_root, 'labels', f"{base_name}.txt")
-                
+
                 is_duplicate = quad_name not in expected_quads
 
                 if is_duplicate:
@@ -253,9 +261,9 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
                         if verbose:
                             print("Skipped Successfuly!")
                         continue
-                
+
                 expected_quads.remove(quad_name)
-                    
+
                 if confidence < 0.6:
                     log_records.append({
                         'File_Name': fname, 'event': 'low_confidence',
@@ -272,11 +280,14 @@ def export_enum_by_quad_using_model(quadrant_model, enum_images_path, enum_df,
                     'n_boxes': n_predicted_boxes,
                     'crop_area': crop_h * crop_w
                 })
-                
+
                 cv2.imwrite(img_out_path, cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR))
-                with open(label_out_path, 'w') as f:
-                    for cls_id, cx, cy, nw, nh in new_labels:
-                        f.write(f"{cls_id} {cx} {cy} {nw} {nh}\n")
+
+                # ---- for export_labels=True ----
+                if export_labels:
+                    with open(label_out_path, 'w') as f:
+                        for cls_id, cx, cy, nw, nh in new_labels:
+                            f.write(f"{cls_id} {cx} {cy} {nw} {nh}\n")
 
         log_records.append({
             'File_Name': fname, 'event': 'boxes_detected',
