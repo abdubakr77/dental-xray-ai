@@ -14,7 +14,7 @@ model_args:
   batch: 8
   patience: 15
   optimizer: AdamW
-  lr0: 0.001
+  lr0: 0.005
   lrf: 0.01
   plots: True
   verbose: True
