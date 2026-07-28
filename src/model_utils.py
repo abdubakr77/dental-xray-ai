@@ -5,6 +5,8 @@ import os
 from src.vis import visualize_augmentation
 from tqdm import tqdm
 import pandas as pd
+import yaml
+from ultralytics import YOLO
 
 def draw_corner_box(img, x1, y1, x2, y2, label_name, confidence, color, length, thickness):
     """
@@ -36,7 +38,6 @@ def draw_corner_box(img, x1, y1, x2, y2, label_name, confidence, color, length, 
         (tw, th), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 1.0, 2)
         cv2.rectangle(img, (x1, y1 - th - 15), (x1 + tw + 10, y1), color, -1)
         cv2.putText(img, text, (x1 + 5, y1 - 8), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 0), 2)
-
 
 
 def smart_predict(yolo_model, images_path, specific_image_name=None, conf_threshold=0.3, 
@@ -125,7 +126,6 @@ def smart_predict(yolo_model, images_path, specific_image_name=None, conf_thresh
 
     plt.tight_layout()
     plt.show()
-
 
 
 def export_enum_by_quad_using_model(quadrant_model, original_images_path, annotations_df=None,
@@ -316,6 +316,7 @@ def export_enum_by_quad_using_model(quadrant_model, original_images_path, annota
     log_df = pd.DataFrame(log_records)
     return log_df
 
+
 def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_worst_csv=None):
 
     print(f"Total images processed: {log_df['File_Name'].nunique()}")
@@ -462,12 +463,9 @@ def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_worst_cs
     }
 
 
+def compare_best_vs_last(results_csv_path, models_yaml_path=None, original_images_path=None,
+                          annotations_df=None, conf_threshold=0.3, verbose=False):
 
-def compare_best_vs_last(results_csv_path):
-    """
-    Takes the path to results.csv, compares the best epoch (based on mAP50-95)
-    against the last epoch, and reports which one is better.
-    """
     df = pd.read_csv(results_csv_path)
     df.columns = df.columns.str.strip()
 
@@ -509,7 +507,7 @@ def compare_best_vs_last(results_csv_path):
 
     diff_map50_95 = best_map50_95 - last_map50_95
 
-    print("Verdict:")
+    print("Verdict (based on training metrics only):")
     if best_epoch == last_epoch:
         print("Best and Last are the same epoch, so the last epoch is also the best one.")
     elif diff_map50_95 > 0.001:
@@ -519,7 +517,7 @@ def compare_best_vs_last(results_csv_path):
     else:
         print("The difference is very small, meaning the model was fairly stable by the end.")
 
-    return {
+    result = {
         "best_epoch": best_epoch + 1,
         "last_epoch": last_epoch + 1,
         "best_map50": best_map50,
@@ -527,3 +525,72 @@ def compare_best_vs_last(results_csv_path):
         "last_map50": last_map50,
         "last_map50_95": last_map50_95,
     }
+
+    if models_yaml_path is None:
+        return result
+
+    if original_images_path is None or annotations_df is None:
+        print("models_yaml_path was given but enum_images_path or annotations_df is missing, skipping test set check.")
+        return result
+
+    with open(models_yaml_path, 'r') as f:
+        models_config = yaml.safe_load(f)
+
+    print("")
+    print("Running best and last weights on the test set")
+
+    weight_results = {}
+
+    for model_name, weights in models_config.items():
+        best_weight_path = weights['best']
+        last_weight_path = weights['last']
+
+        for tag, weight_path in [('best', best_weight_path), ('last', last_weight_path)]:
+            print(f"{model_name} - {tag}")
+            model = YOLO(weight_path)
+
+            log_df = export_enum_by_quad_using_model(
+                model,
+                original_images_path,
+                annotations_df,
+                export_labels=False,
+                export_images=False,
+                conf_threshold=conf_threshold,
+                clear_existing=False,
+                verbose=verbose,
+            )
+
+            n_duplicate = (log_df['event'] == 'duplicate_quad').sum()
+            n_low_conf = (log_df['event'] == 'low_confidence').sum()
+            n_missing = (log_df['event'] == 'missing_quad').sum()
+            n_success = (log_df['event'] == 'successful_detection').sum()
+
+            avg_conf = log_df.loc[log_df['event'] == 'successful_detection', 'confidence'].mean()
+
+            total_errors = n_duplicate + n_low_conf + n_missing
+
+            weight_results[f"{model_name}_{tag}"] = {
+                'model_name': model_name,
+                'tag': tag,
+                'n_duplicate': n_duplicate,
+                'n_low_conf': n_low_conf,
+                'n_missing': n_missing,
+                'n_success': n_success,
+                'avg_confidence': avg_conf,
+                'total_errors': total_errors,
+                'log_df': log_df,
+            }
+
+            print(f"  duplicates: {n_duplicate}, low_confidence: {n_low_conf}, missing: {n_missing}, successful: {n_success}, avg_conf: {avg_conf:.4f}")
+
+    print("")
+    print("Test set summary")
+    for key, r in weight_results.items():
+        print(f"{key}: total_errors={r['total_errors']}, avg_confidence={r['avg_confidence']:.4f}")
+
+    lowest_error_key = min(weight_results, key=lambda k: weight_results[k]['total_errors'])
+    print("")
+    print(f"Lowest total errors on test set: {lowest_error_key} with {weight_results[lowest_error_key]['total_errors']} errors")
+
+    result['test_set_results'] = weight_results
+    return result
