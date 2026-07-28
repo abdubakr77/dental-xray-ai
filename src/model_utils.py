@@ -317,9 +317,9 @@ def export_enum_by_quad_using_model(quadrant_model, original_images_path, annota
         if debugging and debug_count >= debug_limit:
             visualize_augmentation(all_images, all_bboxes, all_labels, titles=all_filenames)
             break
-
-    log_df = pd.DataFrame(log_records)
-    return log_df
+    if not debugging:
+        log_df = pd.DataFrame(log_records)
+        return log_df
 
 
 def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_worst_csv=None):
