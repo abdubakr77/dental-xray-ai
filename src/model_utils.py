@@ -189,6 +189,7 @@ def export_enum_by_quad_using_model(quadrant_model, original_images_path, annota
         results = quadrant_model.predict(img_path, conf=conf_threshold, verbose=False)[0]
         n_predicted_boxes = len(results.boxes)
         expected_quads = ["Upper Right", "Upper Left", "Lower Left", "Lower Right"]
+        processed_quads_this_image = set()
 
         for box in results.boxes:
 
@@ -259,12 +260,16 @@ def export_enum_by_quad_using_model(quadrant_model, original_images_path, annota
                     })
                     if verbose:
                         print(f'Warning: Model Detected {n_predicted_boxes} Boxes And Predicted {quad_name} Again With {confidence} Confidence In This Image Name: {fname.split(".")[0]}')
-                    if os.path.exists(img_out_path):
+                    
+                    if quad_name in processed_quads_this_image:
                         if verbose:
                             print("Skipped Successfuly!")
                         continue
 
-                expected_quads.remove(quad_name)
+                        
+
+                expected_quads.remove(quad_name) if quad_name in expected_quads else None
+                processed_quads_this_image.add(quad_name)
 
                 if confidence < 0.6:
                     log_records.append({
