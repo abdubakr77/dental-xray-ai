@@ -500,7 +500,7 @@ def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_dir=None
 
 
 def compare_best_vs_last(models_yaml=None, model_name=None, original_images_path=None,
-                          annotations_df_path=None, results_csv_path=None, conf_threshold=0.3, verbose=False):
+                          annotations_df_path=None, results_csv_path=None, export_result_path=None, conf_threshold=0.3, verbose=False):
     result = {}
     if results_csv_path:
         df = pd.read_csv(results_csv_path)
@@ -631,4 +631,10 @@ def compare_best_vs_last(models_yaml=None, model_name=None, original_images_path
     print(f"Lowest total errors on test set: {lowest_error_key} with {weight_results[lowest_error_key]['total_errors']} errors")
 
     result['test_set_results'] = weight_results
+
+    if export_result_path:
+        file_path = os.path.join(export_result_path, 'result.yaml')
+        with open(file_path, "w", encoding="utf-8") as f:
+            yaml.dump(result, f, sort_keys=False, default_flow_style=False)
+
     return result
