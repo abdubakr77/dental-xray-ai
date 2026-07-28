@@ -469,7 +469,7 @@ def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_worst_cs
 
 
 def compare_best_vs_last(models_yaml=None, model_name=None, original_images_path=None,
-                          test_df_path=None, results_csv_path=None, conf_threshold=0.3, verbose=False):
+                          annotations_df_path=None, results_csv_path=None, conf_threshold=0.3, verbose=False):
     result = {}
     if results_csv_path:
         df = pd.read_csv(results_csv_path)
@@ -535,9 +535,9 @@ def compare_best_vs_last(models_yaml=None, model_name=None, original_images_path
         if models_yaml is None:
             return result
 
-    test_df = pd.read_pickle(test_df_path)
-    if original_images_path is None or test_df is None:
-        print("models_yaml_path was given but enum_images_path or annotations_df is missing, skipping test set check.")
+    annotations_df = pd.read_pickle(annotations_df_path)
+    if original_images_path is None or annotations_df is None:
+        print("models_yaml was given but original_images_path or annotations_df is missing, skipping test set check.")
         return result
 
     for model_key in models_yaml.keys():
@@ -559,7 +559,7 @@ def compare_best_vs_last(models_yaml=None, model_name=None, original_images_path
         log_df = export_enum_by_quad_using_model(
             model,
             original_images_path,
-            test_df,
+            annotations_df,
             export_labels=False,
             export_images=False,
             conf_threshold=conf_threshold,
