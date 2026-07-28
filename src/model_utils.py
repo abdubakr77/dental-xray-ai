@@ -463,7 +463,7 @@ def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_worst_cs
     }
 
 
-def compare_best_vs_last(results_csv_path, models_yaml_path=None, original_images_path=None,
+def compare_best_vs_last(results_csv_path, models_yaml=None, model_name=None, original_images_path=None,
                           test_df_path=None, conf_threshold=0.3, verbose=False):
 
     df = pd.read_csv(results_csv_path)
@@ -527,62 +527,62 @@ def compare_best_vs_last(results_csv_path, models_yaml_path=None, original_image
         "last_map50_95": last_map50_95,
     }
 
-    if models_yaml_path is None:
+    if models_yaml is None:
         return result
 
     if original_images_path is None or test_df is None:
         print("models_yaml_path was given but enum_images_path or annotations_df is missing, skipping test set check.")
         return result
 
-    with open(models_yaml_path, 'r') as f:
-        models_config = yaml.safe_load(f)
+    for model_key in models_yaml.keys():
+        if model_name in model_key:
+            model_name = model_key
+    
+    models_config = models_yaml[model_name]
 
     print("")
     print("Running best and last weights on the test set")
 
     weight_results = {}
 
-    for model_name, weights in models_config.items():
-        best_weight_path = weights['best']
-        last_weight_path = weights['last']
+    for checkpoint_name, weights_path in models_config.items():
 
-        for tag, weight_path in [('best', best_weight_path), ('last', last_weight_path)]:
-            print(f"{model_name} - {tag}")
-            model = YOLO(weight_path)
+        print(f"{model_name} - {checkpoint_name}")
+        model = YOLO(weights_path)
 
-            log_df = export_enum_by_quad_using_model(
-                model,
-                original_images_path,
-                test_df,
-                export_labels=False,
-                export_images=False,
-                conf_threshold=conf_threshold,
-                clear_existing=False,
-                verbose=verbose,
-            )
+        log_df = export_enum_by_quad_using_model(
+            model,
+            original_images_path,
+            test_df,
+            export_labels=False,
+            export_images=False,
+            conf_threshold=conf_threshold,
+            clear_existing=False,
+            verbose=verbose,
+        )
 
-            n_duplicate = (log_df['event'] == 'duplicate_quad').sum()
-            n_low_conf = (log_df['event'] == 'low_confidence').sum()
-            n_missing = (log_df['event'] == 'missing_quad').sum()
-            n_success = (log_df['event'] == 'successful_detection').sum()
+        n_duplicate = (log_df['event'] == 'duplicate_quad').sum()
+        n_low_conf = (log_df['event'] == 'low_confidence').sum()
+        n_missing = (log_df['event'] == 'missing_quad').sum()
+        n_success = (log_df['event'] == 'successful_detection').sum()
 
-            avg_conf = log_df.loc[log_df['event'] == 'successful_detection', 'confidence'].mean()
+        avg_conf = log_df.loc[log_df['event'] == 'successful_detection', 'confidence'].mean()
 
-            total_errors = n_duplicate + n_low_conf + n_missing
+        total_errors = n_duplicate + n_low_conf + n_missing
 
-            weight_results[f"{model_name}_{tag}"] = {
-                'model_name': model_name,
-                'tag': tag,
-                'n_duplicate': n_duplicate,
-                'n_low_conf': n_low_conf,
-                'n_missing': n_missing,
-                'n_success': n_success,
-                'avg_confidence': avg_conf,
-                'total_errors': total_errors,
-                'log_df': log_df,
-            }
+        weight_results[f"{model_name}_{checkpoint_name}"] = {
+            'model_name': model_name,
+            'tag': checkpoint_name,
+            'n_duplicate': n_duplicate,
+            'n_low_conf': n_low_conf,
+            'n_missing': n_missing,
+            'n_success': n_success,
+            'avg_confidence': avg_conf,
+            'total_errors': total_errors,
+            'log_df': log_df,
+        }
 
-            print(f"  duplicates: {n_duplicate}, low_confidence: {n_low_conf}, missing: {n_missing}, successful: {n_success}, avg_conf: {avg_conf:.4f}")
+        print(f"  duplicates: {n_duplicate}, low_confidence: {n_low_conf}, missing: {n_missing}, successful: {n_success}, avg_conf: {avg_conf:.4f}")
 
     print("")
     print("Test set summary")
