@@ -322,7 +322,7 @@ def export_enum_by_quad_using_model(quadrant_model, original_images_path, annota
         return log_df
 
 
-def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_worst_csv=None):
+def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_dir=None, split_name=None):
 
     print(f"Total images processed: {log_df['File_Name'].nunique()}")
     print(f"Total events logged: {len(log_df)}\n")
@@ -349,6 +349,8 @@ def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_worst_cs
     axes[1].set_title('Detection Accuracy Summary')
 
     plt.tight_layout()
+    if export_dir and split_name:
+        plt.savefig(os.path.join(export_dir,split_name,'detected_box_count_summary.png'),dpi=300)
     plt.show()
 
     # ---- 2. (duplicate for each quad) ----
@@ -361,6 +363,8 @@ def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_worst_cs
         plt.ylabel('Count')
         for i, v in enumerate(dup_counts.values):
             plt.text(i, v + 0.3, str(v), ha='center')
+        if export_dir and split_name:    
+            plt.savefig(os.path.join(export_dir,split_name,'duplicate_predictions_per_quadrant.png'),dpi=300)
         plt.show()
     else:
         print("No duplicate quadrant predictions found.")
@@ -376,6 +380,8 @@ def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_worst_cs
         plt.ylabel('Count')
         for i, v in enumerate(missing_counts.values):
             plt.text(i, v + 0.3, str(v), ha='center')
+        if export_dir and split_name:
+            plt.savefig(os.path.join(export_dir,split_name,'missing_predictions_per_quadrant.png'),dpi=300)
         plt.show()
     else:
         print("No missing quadrant predictions found.")
@@ -391,6 +397,8 @@ def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_worst_cs
         plt.title('Low Confidence Predictions by Quadrant')
         plt.ylabel('Confidence')
         plt.legend()
+        if export_dir and split_name:
+            plt.savefig(os.path.join(export_dir,split_name,'low_confidence_by_quadrant.png'),dpi=300)
         plt.show()
 
         print(f"\nTotal low confidence warnings: {len(low_conf_df)}")
@@ -401,14 +409,35 @@ def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_worst_cs
     # ---- 5. Calculate the Avg for high confidence & low confidence ----
     all_conf_events = log_df[log_df['confidence'].notna()]
     if len(all_conf_events) > 0:
-        high_conf_avg = all_conf_events[all_conf_events['confidence'] >= low_conf_threshold]['confidence'].mean()
-        low_conf_avg = all_conf_events[all_conf_events['confidence'] < low_conf_threshold]['confidence'].mean()
+        high_conf_events = all_conf_events[all_conf_events['confidence'] >= low_conf_threshold]
+        low_conf_events = all_conf_events[all_conf_events['confidence'] < low_conf_threshold]
+
+        high_conf_avg = high_conf_events['confidence'].mean()
+        low_conf_avg = low_conf_events['confidence'].mean()
+        overall_std = all_conf_events['confidence'].std()
+
         gap = (high_conf_avg - low_conf_avg) if not np.isnan(low_conf_avg) else None
+        low_count = len(low_conf_events)
 
         print(f"\nAverage HIGH confidence (>= {low_conf_threshold}): {high_conf_avg:.3f}")
         print(f"Average LOW confidence  (< {low_conf_threshold}): {low_conf_avg:.3f}" if not np.isnan(low_conf_avg) else "Average LOW confidence: N/A (no low conf events)")
+
         if gap is not None:
-            print(f"Confidence Gap: {gap:.3f}  ({'large, model is inconsistent' if gap > 0.4 else 'moderate' if gap > 0.2 else 'small, model is fairly stable'})")
+            # Reliability check: small sample sizes produce misleading gaps
+            if low_count < 5:
+                print(f"Confidence Gap: {gap:.3f}  (low sample size n={low_count}, result not reliable)")
+            else:
+                # Classify gap relative to the overall spread of the data (std),
+                # instead of using fixed arbitrary thresholds
+                if overall_std == 0 or np.isnan(overall_std):
+                    severity = 'undetermined (no variance in data)'
+                elif gap > 2 * overall_std:
+                    severity = 'large, model is inconsistent'
+                elif gap > overall_std:
+                    severity = 'moderate'
+                else:
+                    severity = 'small, model is fairly stable'
+                print(f"Confidence Gap: {gap:.3f}  (std={overall_std:.3f}, n_low={low_count} -> {severity})")
 
     # ---- 6. Heatmap: (duplicate confusion) ----
     if len(dup_df) > 0:
@@ -438,6 +467,8 @@ def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_worst_cs
                 for j in range(len(pivot.columns)):
                     plt.text(j, i, pivot.iloc[i, j], ha='center', va='center')
             plt.tight_layout()
+            if export_dir and split_name:
+                plt.savefig(os.path.join(export_dir,split_name,'low_confidence_by_quadrant.png'),dpi=300)
             plt.show()
         else:
             print("\nNo clear duplicate-missing confusion pattern found in the same images.")
@@ -450,10 +481,10 @@ def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_worst_cs
         print(worst_images)
 
     # ---- 8. Export CSV (Optional) ----
-    if export_worst_csv:
+    if export_dir and split_name:
         worst_df = problem_events[problem_events['File_Name'].isin(worst_images.index)]
-        worst_df.to_csv(export_worst_csv, index=False)
-        print(f"\nExported worst images log to: {export_worst_csv}")
+        worst_df.to_csv(os.path.join(export_dir,split_name,f'worst_{split_name}_images.csv'), index=False)
+        print(f"\nExported worst images log to: {os.path.join(export_dir,split_name)}")
 
     return {
         'total_images': boxes_df['File_Name'].nunique(),
