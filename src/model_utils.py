@@ -178,7 +178,7 @@ def export_enum_by_quad_using_model(quadrant_model, original_images_path, annota
 
     file_list = annotations_df['File_Name'].unique()
 
-    for fname in tqdm(file_list, desc='Cropping using trained quadrant model'):
+    for fname in tqdm(file_list):
 
         if debugging:
             fname = np.random.choice(file_list)
