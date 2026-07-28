@@ -133,15 +133,16 @@ def export_enum_by_quad_using_model(quadrant_model, original_images_path, annota
                                     conf_threshold=0.3,
                                     debugging=False, debug_limit=5,
                                     clear_existing=True,
+                                    verbose=False,
                                     export_labels=True,
-                                    verbose=False,):
+                                    export_images=True):
 
     # ---- check + clear existing images/labels ----
     if clear_existing and not debugging:
         imgs_path = os.path.join(output_root, 'images')
         labels_path = os.path.join(output_root, 'labels')
 
-        any_existing = (os.path.exists(imgs_path) and len(os.listdir(imgs_path)) > 0) or \
+        any_existing = (export_images and os.path.exists(imgs_path) and len(os.listdir(imgs_path)) > 0) or \
                         (export_labels and os.path.exists(labels_path) and len(os.listdir(labels_path)) > 0)
 
         if any_existing:
@@ -151,7 +152,11 @@ def export_enum_by_quad_using_model(quadrant_model, original_images_path, annota
             if confirm == 'y':
                 deleted_count = 0
                 failed_count = 0
-                paths_to_clear = [imgs_path, labels_path] if export_labels else [imgs_path]
+                paths_to_clear = []
+                if export_images:
+                    paths_to_clear.append(imgs_path)
+                if export_labels:
+                    paths_to_clear.append(labels_path)
                 for sub_path in paths_to_clear:
                     if not os.path.exists(sub_path):
                         continue
@@ -278,9 +283,9 @@ def export_enum_by_quad_using_model(quadrant_model, original_images_path, annota
                     'crop_area': crop_h * crop_w
                 })
 
-                cv2.imwrite(img_out_path, cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR))
+                if export_images:
+                    cv2.imwrite(img_out_path, cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR))
 
-                # ---- for export_labels=True ----
                 if export_labels:
                     with open(label_out_path, 'w') as f:
                         for cls_id, cx, cy, nw, nh in new_labels:
@@ -308,9 +313,8 @@ def export_enum_by_quad_using_model(quadrant_model, original_images_path, annota
             visualize_augmentation(all_images, all_bboxes, all_labels, titles=all_filenames)
             break
 
-    if not debugging:
-        log_df = pd.DataFrame(log_records)
-        return log_df
+    log_df = pd.DataFrame(log_records)
+    return log_df
 
 def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_worst_csv=None):
 
