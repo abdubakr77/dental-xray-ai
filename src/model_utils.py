@@ -633,8 +633,9 @@ def compare_best_vs_last(models_yaml=None, model_name=None, original_images_path
     result['test_set_results'] = weight_results
 
     if export_result_path:
-        file_path = os.path.join(export_result_path, 'result.yaml')
-        with open(file_path, "w", encoding="utf-8") as f:
-            yaml.dump(result, f, sort_keys=False, default_flow_style=False)
+        import pickle
+        file_path = os.path.join(export_result_path, 'result_summary.pkl')
+        with open(file_path, "wb") as f:
+            pickle.dump(result, f)
 
     return result
