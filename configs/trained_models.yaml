@@ -1,7 +1,7 @@
-quad_detection_model:
+quadrant_detection_model:
   best: ..\Runs\Stage 1\weights\best.pt
   last: ..\Runs\Stage 1\weights\last.pt
-enum_detection_model:
+enumeration_detection_model:
   best: ..\Runs\Stage 2\weights\best.pt
   last: ..\Runs\Stage 2\weights\last.pt
 disease_classification_model:
