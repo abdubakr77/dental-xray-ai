@@ -464,10 +464,11 @@ def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_worst_cs
 
 
 def compare_best_vs_last(results_csv_path, models_yaml_path=None, original_images_path=None,
-                          annotations_df=None, conf_threshold=0.3, verbose=False):
+                          test_df_path=None, conf_threshold=0.3, verbose=False):
 
     df = pd.read_csv(results_csv_path)
     df.columns = df.columns.str.strip()
+    test_df = pd.read_pickle(test_df_path)
 
     if "epoch" not in df.columns:
         print("Column 'epoch' not found in the file.")
@@ -529,7 +530,7 @@ def compare_best_vs_last(results_csv_path, models_yaml_path=None, original_image
     if models_yaml_path is None:
         return result
 
-    if original_images_path is None or annotations_df is None:
+    if original_images_path is None or test_df is None:
         print("models_yaml_path was given but enum_images_path or annotations_df is missing, skipping test set check.")
         return result
 
@@ -552,7 +553,7 @@ def compare_best_vs_last(results_csv_path, models_yaml_path=None, original_image
             log_df = export_enum_by_quad_using_model(
                 model,
                 original_images_path,
-                annotations_df,
+                test_df,
                 export_labels=False,
                 export_images=False,
                 conf_threshold=conf_threshold,
