@@ -5,7 +5,6 @@ import os
 from src.vis import visualize_augmentation
 from tqdm import tqdm
 import pandas as pd
-import yaml
 from ultralytics import YOLO
 
 def draw_corner_box(img, x1, y1, x2, y2, label_name, confidence, color, length, thickness):
