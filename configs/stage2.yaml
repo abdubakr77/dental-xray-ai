@@ -27,17 +27,17 @@ model_args:
   name: Stage 2
   save_dir: ..\Runs\Stage 2
   auto_augment: None
-  augment: False
+  augment: True
   mosaic: 0.0
   mixup: 0.0
   copy_paste: 0.0
   cutmix: 0.0
-  hsv_h: 0.0
-  hsv_s: 0.0
-  hsv_v: 0.0
-  degrees: 0.0
-  translate: 0.0
-  scale: 0.0
+  hsv_h: 0.015
+  hsv_s: 0.4
+  hsv_v: 0.4
+  degrees: 5.0
+  translate: 0.05
+  scale: 0.1
   shear: 0.0
   perspective: 0.0
   flipud: 0.0
@@ -63,17 +63,17 @@ continued_training_args:
   name: Stage 2 Continued
   save_dir: ..\Runs\Stage 2 Continued
   auto_augment: None
-  augment: False
+  augment: True
   mosaic: 0.0
   mixup: 0.0
   copy_paste: 0.0
   cutmix: 0.0
-  hsv_h: 0.0
-  hsv_s: 0.0
-  hsv_v: 0.0
-  degrees: 0.0
-  translate: 0.0
-  scale: 0.0
+  hsv_h: 0.015
+  hsv_s: 0.4
+  hsv_v: 0.4
+  degrees: 5.0
+  translate: 0.05
+  scale: 0.1
   shear: 0.0
   perspective: 0.0
   flipud: 0.0
