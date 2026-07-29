@@ -236,3 +236,7 @@ Data/Processed/Stage 2 (Enumeration Detection)Diagnosis Quadrants Train//valid
 Data/Processed/Stage 3 (Disease Classifier)/test
 Data/Processed/Stage 3 (Disease Classifier)/train
 Data/Processed/Stage 3 (Disease Classifier)/valid
+
+Data/Processed/Stage 3 (Disease Classifier)/Cropped Images Via Quadrant Model/test
+Data/Processed/Stage 3 (Disease Classifier)/Cropped Images Via Quadrant Model/train
+Data/Processed/Stage 3 (Disease Classifier)/Cropped Images Via Quadrant Model/valid
