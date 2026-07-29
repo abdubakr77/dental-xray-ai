@@ -23,7 +23,6 @@ model_args:
   name: Stage 1
   save_dir: ..\Runs\Stage 1
   auto_augment: None
-  augment: False
   augment: True
   mosaic: 0.0
   mixup: 0.0
