@@ -7,7 +7,7 @@ paths:
 
 model_args:
   data: ..\Data\Processed\Stage 2 Continued (Healthy & Disease Enumeration Detection)\data.yaml
-  model: ..\Runs\Stage 2\weights\best.pt
+  model: ..\Runs\Stage 2 Continued\weights\best.pt
   epochs: 50
   save: True
   imgsz: 1280
