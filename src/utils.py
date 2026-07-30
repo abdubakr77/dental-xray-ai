@@ -47,6 +47,25 @@ def _iou_xyxy(box_a, box_b):
 
     return inter_area / union if union > 0 else 0.0
 
+
+def _xywh_norm_to_xyxy_px(cx, cy, w, h, img_w, img_h):
+    """
+    Convert a normalized YOLO box (cx, cy, w, h) to pixel corners (x1, y1, x2, y2).
+
+    Args:
+        cx, cy, w, h: normalized YOLO box values (0-1)
+        img_w, img_h: image width/height in pixels
+
+    Returns:
+        (x1, y1, x2, y2) in pixels
+    """
+    x1 = (cx - w / 2) * img_w
+    y1 = (cy - h / 2) * img_h
+    x2 = (cx + w / 2) * img_w
+    y2 = (cy + h / 2) * img_h
+    return x1, y1, x2, y2
+
+
 def find_duplicate_boxes(df, target_col, iou_threshold=0.9):
     duplicates = []
     
