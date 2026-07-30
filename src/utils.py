@@ -594,7 +594,7 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
                 if 7 in class_labels:
                     n = 6
                 else:
-                    n = 3
+                    continue
             elif 'caries' in data_yaml['names']:
                 if 2 in class_labels:
                     n = 10
