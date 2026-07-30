@@ -591,8 +591,10 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
             if 'Upper Right' in data_yaml['names']:
                 n = 3
             elif 'Tooth' in data_yaml['names'] or data_yaml['nc'] == 8:
-                n_teeth = len(bboxes)
-                n = 6 if n_teeth <= 4 else 4 if n_teeth <= 6 else 3
+                if 7 in class_labels:
+                    n = 6
+                else:
+                    n = 3
             elif 'caries' in data_yaml['names']:
                 if 2 in class_labels:
                     n = 10
