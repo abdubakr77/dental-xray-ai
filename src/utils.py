@@ -22,27 +22,30 @@ diagnosis_map = {
     3: "deep_caries"
 }
 
-def compute_iou(box1, box2):
-    # Must boxes format are: [x, y, w, h]
-    x1, y1, w1, h1 = box1
-    x2, y2, w2, h2 = box2
-    
-    xi1 = max(x1, x2)
-    yi1 = max(y1, y2)
-    xi2 = min(x1 + w1, x2 + w2)
-    yi2 = min(y1 + h1, y2 + h2)
-    
-    inter_width = max(0, xi2 - xi1)
-    inter_height = max(0, yi2 - yi1)
-    intersection = inter_width * inter_height
-    
-    area1 = w1 * h1
-    area2 = w2 * h2
-    union = area1 + area2 - intersection
-    
-    if union == 0:
-        return 0
-    return intersection / union
+def _iou_xyxy(box_a, box_b):
+    """
+    Intersection-over-union between two (x1, y1, x2, y2) boxes in pixels.
+
+    Args:
+        box_a: first box as (x1, y1, x2, y2)
+        box_b: second box as (x1, y1, x2, y2)
+
+    Returns:
+        IoU as a float between 0 and 1
+    """
+    ax1, ay1, ax2, ay2 = box_a
+    bx1, by1, bx2, by2 = box_b
+
+    inter_x1, inter_y1 = max(ax1, bx1), max(ay1, by1)
+    inter_x2, inter_y2 = min(ax2, bx2), min(ay2, by2)
+    inter_w, inter_h = max(0, inter_x2 - inter_x1), max(0, inter_y2 - inter_y1)
+    inter_area = inter_w * inter_h
+
+    area_a = max(0, ax2 - ax1) * max(0, ay2 - ay1)
+    area_b = max(0, bx2 - bx1) * max(0, by2 - by1)
+    union = area_a + area_b - inter_area
+
+    return inter_area / union if union > 0 else 0.0
 
 def find_duplicate_boxes(df, target_col, iou_threshold=0.9):
     duplicates = []
@@ -55,7 +58,7 @@ def find_duplicate_boxes(df, target_col, iou_threshold=0.9):
             for j in range(i+1, n):
                 box1 = rows.iloc[i]['Bbox']
                 box2 = rows.iloc[j]['Bbox']
-                iou = compute_iou(box1, box2)
+                iou = _iou_xyxy(box1, box2)
                 text = f'{rows.iloc[i][target_col]} {rows.iloc[j][target_col]}'
                 sorted_text = sorted(text.split())
                 if iou >= iou_threshold:
