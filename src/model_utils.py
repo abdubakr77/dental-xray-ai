@@ -2,10 +2,12 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+from src.utils import _iou_xyxy
 from src.vis import visualize_augmentation
 from tqdm import tqdm
 import pandas as pd
 from ultralytics import YOLO
+from itertools import combinations
 
 def draw_corner_box(img, x1, y1, x2, y2, label_name, confidence, color, length, thickness):
     """
@@ -316,6 +318,340 @@ def export_quadrants_using_quad_model(quadrant_model, original_images_path, anno
         if debugging and debug_count >= debug_limit:
             visualize_augmentation(all_images, all_bboxes, all_labels, titles=all_filenames)
             break
+    if not debugging:
+        log_df = pd.DataFrame(log_records)
+        return log_df
+
+
+def export_teeth_in_quad_using_enum_model(enum_model, images_root, labels_root,
+                                            output_root=os.getcwd(),
+                                            conf_threshold=0.3,
+                                            low_conf_threshold=0.6,
+                                            duplicate_iou_threshold=0.5,
+                                            edge_margin_ratio=0.06,
+                                            leak_area_ratio=0.5,
+                                            background_area_ratio_low=0.15,
+                                            background_area_ratio_high=4.0,
+                                            n_enum_classes=8,
+                                            debugging=False, debug_limit=5,
+                                            clear_existing=True,
+                                            verbose=False,
+                                            export_labels=True,
+                                            export_images=True):
+    """
+    Stage 2 Continued step: run the enumeration model on the quadrant crops that
+    currently only have disease-tooth labels, and fill in the rest of the teeth.
+
+    Unlike export_quadrants_using_quad_model, this does not crop anything itself.
+    images_root/labels_root already hold the quadrant crops and their YOLO labels
+    (exported earlier via export_quadrants_using_quad_model on the disease data), and
+    those labels only cover the diseased teeth. For each crop we run the enum
+    model, drop any prediction that lands on a tooth number already present in the
+    existing label (that tooth is already correct ground truth, so we never let a
+    prediction override it), clean up duplicate detections, and write out a merged
+    label file with the original disease teeth plus the newly detected healthy
+    ones.
+
+    A few things below are heuristics rather than certainties, since we don't have
+    full ground truth for every tooth here (that's the whole reason this function
+    exists). The out-of-quadrant-leak and background-prediction checks are best
+    read as "worth a manual look", not "definitely wrong" -- tune edge_margin_ratio,
+    leak_area_ratio, background_area_ratio_low/high against your own data before
+    trusting them blindly.
+
+    Args:
+        enum_model: loaded YOLO enumeration model
+        images_root: folder of quadrant crop images (e.g. Stage 3 crops)
+        labels_root: folder of existing YOLO label .txt files for those crops,
+            currently containing only the diseased-tooth boxes
+        output_root: where the merged images/labels get written
+        conf_threshold: passed straight to enum_model.predict
+        low_conf_threshold: predictions below this get flagged as low_confidence
+            but are still kept
+        duplicate_iou_threshold: IoU above which two same-class boxes count as
+            the same physical tooth (same-location duplicate) rather than two
+            separate detections of that tooth number
+        edge_margin_ratio: how close to the crop edge (as a fraction of width or
+            height) a box has to sit before it's considered for the cross-quadrant
+            leak check
+        leak_area_ratio: a box touching the edge is only flagged as a possible
+            leak if its area is below this fraction of the median accepted box
+            area for the image (i.e. it looks like a partial, cut-off tooth)
+        background_area_ratio_low / _high: a box is flagged as a possible
+            background prediction if its area falls outside
+            [median * low, median * high] for that image
+        n_enum_classes: number of enumeration classes (0-7 by default, matching
+            the project's data.yaml)
+        debugging: if True, sample debug_limit random crops and visualize instead
+            of writing anything out
+        clear_existing: if True (and not debugging), ask before wiping
+            output_root/images and output_root/labels
+        verbose: print a line for every flagged event as it happens
+        export_labels / export_images: toggle writing each output type
+
+    Returns:
+        log_df: a DataFrame of one row per event (see the `event` column for the
+            event names used below). None when debugging=True.
+    """
+
+    # ---- check + clear existing images/labels ----
+    if clear_existing and not debugging:
+        imgs_path = os.path.join(output_root, 'images')
+        labels_path = os.path.join(output_root, 'labels')
+
+        any_existing = (export_images and os.path.exists(imgs_path) and len(os.listdir(imgs_path)) > 0) or \
+                        (export_labels and os.path.exists(labels_path) and len(os.listdir(labels_path)) > 0)
+
+        if any_existing:
+            print("Warning: Found existing images/labels in the output directory.")
+            confirm = input("Do you want to delete them all before re-exporting? - (y or n): ").lower().strip()
+
+            if confirm == 'y':
+                deleted_count = 0
+                failed_count = 0
+                paths_to_clear = []
+                if export_images:
+                    paths_to_clear.append(imgs_path)
+                if export_labels:
+                    paths_to_clear.append(labels_path)
+                for sub_path in paths_to_clear:
+                    if not os.path.exists(sub_path):
+                        continue
+                    for f in os.listdir(sub_path):
+                        try:
+                            os.remove(os.path.join(sub_path, f))
+                            deleted_count += 1
+                        except Exception as e:
+                            print(f"Failed to remove {f}: {e}")
+                            failed_count += 1
+
+                print(f"Deleted {deleted_count} files. Failed: {failed_count}.")
+            else:
+                print("Skipped clearing. New files will be mixed with existing ones.")
+
+    if export_images:
+        os.makedirs(os.path.join(output_root, 'images'), exist_ok=True)
+    if export_labels:
+        os.makedirs(os.path.join(output_root, 'labels'), exist_ok=True)
+
+    file_list = [f for f in os.listdir(images_root) if f.lower().endswith('.png')]
+
+    debug_count = 0
+    all_images, all_labels, all_bboxes, all_filenames = [], [], [], []
+    log_records = []
+
+    # The four crop filename suffixes produced by export_quadrants_using_quad_model,
+    # e.g. "1234_UpperRight.png". Used here to recover which quadrant a crop belongs
+    # to, since the enum model itself has no notion of quadrant.
+    QUAD_TAGS = ["UpperRight", "UpperLeft", "LowerLeft", "LowerRight"]
+
+    for fname in tqdm(file_list):
+
+        if debugging:
+            fname = np.random.choice(file_list)
+
+        name_no_ext = os.path.splitext(fname)[0]
+
+        # recover which quadrant this crop came from, from the filename suffix
+        # export_quadrants_using_quad_model gave it (e.g. "..._UpperRight")
+        quad_name = None
+        for tag in QUAD_TAGS:
+            if name_no_ext.endswith('_' + tag):
+                quad_name = tag
+                break
+
+        img_path = os.path.join(images_root, fname)
+        img = cv2.imread(img_path)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        crop_h, crop_w = img.shape[:2]
+
+        # ---- load the existing (disease-only) labels for this crop, if any ----
+        existing_lines = []
+        existing_classes = set()
+        label_path = os.path.join(labels_root, f"{name_no_ext}.txt")
+        if os.path.exists(label_path):
+            with open(label_path, 'r') as f:
+                for line in f:
+                    parts = line.strip().split()
+                    if not parts:
+                        continue
+                    cls_id = int(parts[0])
+                    existing_lines.append(line.strip())
+                    existing_classes.add(cls_id)
+
+        # ---- run the enum model on the crop ----
+        results = enum_model.predict(img_path, conf=conf_threshold, verbose=False)[0]
+        n_predicted_boxes = len(results.boxes)
+
+        # group raw predictions by class so we can resolve duplicates per tooth number
+        by_class = {}
+        for box in results.boxes:
+            cls_id = int(box.cls[0])
+            confidence = np.round(float(box.conf), 2)
+            x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+
+            # a tooth number already present in the existing (disease) labels is
+            # already correct ground truth, so we never let a prediction touch it.
+            # This isn't a duplicate in the usual sense, so it gets its own event.
+            if cls_id in existing_classes:
+                log_records.append({
+                    'File_Name': fname, 'event': 'skipped_already_labeled',
+                    'enum_class': cls_id, 'confidence': confidence,
+                    'n_boxes': n_predicted_boxes, 'crop_area': crop_h * crop_w
+                })
+                if verbose:
+                    print(f"Skipped: tooth {cls_id} already has a disease label in {fname}")
+                continue
+
+            by_class.setdefault(cls_id, []).append((confidence, (x1, y1, x2, y2)))
+
+        accepted_boxes = []  # list of (cls_id, confidence, x1, y1, x2, y2)
+
+        for cls_id, candidates in by_class.items():
+            if len(candidates) == 1:
+                confidence, box = candidates[0]
+                accepted_boxes.append((cls_id, confidence, *box))
+                continue
+
+            # more than one box predicted the same tooth number: figure out if
+            # they're really the same detection duplicated (high IoU) or two
+            # genuinely different locations (model confused about where this
+            # tooth number is). Either way we only keep the highest-confidence one.
+            max_iou = max(_iou_xyxy(a[1], b[1]) for a, b in combinations(candidates, 2))
+            dup_event = 'duplicate_same_location' if max_iou >= duplicate_iou_threshold else 'duplicate_diff_location'
+
+            candidates_sorted = sorted(candidates, key=lambda c: c[0], reverse=True)
+            best_conf, best_box = candidates_sorted[0]
+            accepted_boxes.append((cls_id, best_conf, *best_box))
+
+            for confidence, box in candidates_sorted[1:]:
+                log_records.append({
+                    'File_Name': fname, 'event': dup_event,
+                    'enum_class': cls_id, 'confidence': confidence,
+                    'n_boxes': n_predicted_boxes, 'crop_area': crop_h * crop_w
+                })
+                if verbose:
+                    print(f"Warning: dropped a {dup_event} box for tooth {cls_id} in {fname}")
+ 
+        # median accepted box area for this image, used by the leak/background checks below
+        areas = [max(0, x2 - x1) * max(0, y2 - y1) for _, _, x1, y1, x2, y2 in accepted_boxes]
+        median_area = float(np.median(areas)) if areas else 0.0
+
+        final_boxes = []  # boxes that survive every check and actually get written out
+
+        for cls_id, confidence, x1, y1, x2, y2 in accepted_boxes:
+            box_w, box_h = x2 - x1, y2 - y1
+            box_area = box_w * box_h
+
+            # --- possible leak from a neighboring quadrant ---
+            # heuristic: the box sits right at the crop edge away from the tooth
+            # row AND is much smaller than the other accepted teeth in this crop,
+            # which is what a partially cropped, leaked-in tooth tends to look like
+            is_edge_touching = False
+            if quad_name is not None:
+                edge_x = edge_margin_ratio * crop_w
+                edge_y = edge_margin_ratio * crop_h
+                if 'Upper' in quad_name and y1 <= edge_y:
+                    is_edge_touching = True
+                if 'Lower' in quad_name and y2 >= crop_h - edge_y:
+                    is_edge_touching = True
+                if 'Right' in quad_name and x1 <= edge_x:
+                    is_edge_touching = True
+                if 'Left' in quad_name and x2 >= crop_w - edge_x:
+                    is_edge_touching = True
+
+            if is_edge_touching and median_area > 0 and box_area <= leak_area_ratio * median_area:
+                log_records.append({
+                    'File_Name': fname, 'event': 'possible_cross_quadrant_leak',
+                    'enum_class': cls_id, 'confidence': confidence,
+                    'n_boxes': n_predicted_boxes, 'crop_area': crop_h * crop_w
+                })
+                if verbose:
+                    print(f"Warning: possible cross-quadrant leak for tooth {cls_id} in {fname}")
+                continue
+
+            # --- possible background prediction ---
+            # heuristic: a box wildly smaller or larger than the other teeth in
+            # this same crop is more likely to be background than a real tooth
+            if median_area > 0 and not (background_area_ratio_low * median_area <= box_area <= background_area_ratio_high * median_area):
+                log_records.append({
+                    'File_Name': fname, 'event': 'possible_background_prediction',
+                    'enum_class': cls_id, 'confidence': confidence,
+                    'n_boxes': n_predicted_boxes, 'crop_area': crop_h * crop_w
+                })
+                if verbose:
+                    print(f"Warning: possible background prediction for tooth {cls_id} in {fname}")
+                continue
+
+            if confidence < low_conf_threshold:
+                log_records.append({
+                    'File_Name': fname, 'event': 'low_confidence',
+                    'enum_class': cls_id, 'confidence': confidence,
+                    'n_boxes': n_predicted_boxes, 'crop_area': crop_h * crop_w
+                })
+                if verbose:
+                    print(f"Warning: low confidence ({confidence}) for tooth {cls_id} in {fname}")
+
+            log_records.append({
+                'File_Name': fname, 'event': 'successful_detection',
+                'enum_class': cls_id, 'confidence': confidence,
+                'n_boxes': n_predicted_boxes, 'crop_area': crop_h * crop_w
+            })
+
+            cx = ((x1 + x2) / 2) / crop_w
+            cy = ((y1 + y2) / 2) / crop_h
+            nw = box_w / crop_w
+            nh = box_h / crop_h
+            final_boxes.append((cls_id, cx, cy, nw, nh))
+
+        # not every quadrant truly has all n_enum_classes teeth (missing/extracted
+        # teeth are normal), so this is a flag to review, not a guaranteed error
+        covered_classes = existing_classes | {cls_id for cls_id, *_ in final_boxes}
+        missing_classes = set(range(n_enum_classes)) - covered_classes
+        if missing_classes:
+            log_records.append({
+                'File_Name': fname, 'event': 'missing_teeth',
+                'enum_class': ' & '.join(str(c) for c in sorted(missing_classes)),
+                'confidence': None, 'n_boxes': n_predicted_boxes, 'crop_area': None
+            })
+            if verbose:
+                print(f"Warning: no detection for teeth {sorted(missing_classes)} in {fname}")
+
+        log_records.append({
+            'File_Name': fname, 'event': 'boxes_detected',
+            'enum_class': None, 'confidence': None,
+            'n_boxes': n_predicted_boxes, 'crop_area': crop_h * crop_w
+        })
+
+        if debugging:
+            debug_labels = [cls_id for cls_id, *_ in final_boxes] + list(existing_classes)
+            debug_bboxes = [(cx, cy, nw, nh) for _, cx, cy, nw, nh in final_boxes]
+            for line in existing_lines:
+                cls_id, cx, cy, nw, nh = line.split()
+                debug_bboxes.append((float(cx), float(cy), float(nw), float(nh)))
+
+            all_images.append(img)
+            all_bboxes.append(debug_bboxes)
+            all_labels.append(debug_labels)
+            all_filenames.append(name_no_ext)
+
+            debug_count += 1
+            if debug_count >= debug_limit:
+                visualize_augmentation(all_images, all_bboxes, all_labels, titles=all_filenames)
+                break
+            continue
+
+        # ---- write merged output: existing disease labels + newly accepted teeth ----
+        if export_images:
+            cv2.imwrite(os.path.join(output_root, 'images', fname), cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
+
+        if export_labels:
+            with open(os.path.join(output_root, 'labels', f"{name_no_ext}.txt"), 'w') as f:
+                for line in existing_lines:
+                    f.write(line + "\n")
+                for cls_id, cx, cy, nw, nh in final_boxes:
+                    f.write(f"{cls_id} {cx} {cy} {nw} {nh}\n")
+
     if not debugging:
         log_df = pd.DataFrame(log_records)
         return log_df
