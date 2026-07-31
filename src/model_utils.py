@@ -834,6 +834,246 @@ def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_dir=None
     }
 
 
+def analyze_full_teeth_predictions(log_df, low_conf_threshold=0.6, n_enum_classes=8, export_dir=None, split_name=None):
+
+    print(f"Total images processed: {log_df['File_Name'].nunique()}")
+    print(f"Total events logged: {len(log_df)}\n")
+
+    # ---- 1. boxes ----
+    # unlike quadrants, a crop can legitimately have anywhere from 0 to
+    # n_enum_classes teeth, so there's no single "correct" count to check
+    # against. The one thing we CAN say for certain is that more than
+    # n_enum_classes boxes in one crop is always wrong.
+    boxes_df = log_df[log_df['event'] == 'boxes_detected'][['File_Name', 'n_boxes']].drop_duplicates()
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+    box_counts = boxes_df['n_boxes'].value_counts().sort_index()
+    axes[0].bar(box_counts.index.astype(str), box_counts.values, color='steelblue')
+    axes[0].set_title('Number of Images by Raw Detected Box Count')
+    axes[0].set_xlabel('Boxes Detected')
+    axes[0].set_ylabel('Number of Images')
+    for i, v in enumerate(box_counts.values):
+        axes[0].text(i, v + 0.5, str(v), ha='center')
+
+    within_range = (boxes_df['n_boxes'] <= n_enum_classes).sum()
+    over_range = (boxes_df['n_boxes'] > n_enum_classes).sum()
+    axes[1].pie([within_range, over_range],
+                labels=[f'<= {n_enum_classes} boxes\n({within_range})', f'> {n_enum_classes} boxes\n({over_range})'],
+                colors=['#4CAF50', '#F44336'], autopct='%1.1f%%')
+    axes[1].set_title('Raw Box Count vs Max Possible Teeth')
+
+    plt.tight_layout()
+    if export_dir and split_name:
+        plt.savefig(os.path.join(export_dir,split_name,'detected_box_count_summary.png'),dpi=300)
+    plt.show()
+
+    # ---- 2. duplicates (same-location vs different-location) per tooth number ----
+    dup_same_df = log_df[log_df['event'] == 'duplicate_same_location']
+    dup_diff_df = log_df[log_df['event'] == 'duplicate_diff_location']
+
+    if len(dup_same_df) > 0 or len(dup_diff_df) > 0:
+        same_counts = dup_same_df['enum_class'].value_counts()
+        diff_counts = dup_diff_df['enum_class'].value_counts()
+        all_classes = sorted(set(same_counts.index) | set(diff_counts.index))
+
+        x = np.arange(len(all_classes))
+        width = 0.35
+
+        plt.figure(figsize=(10, 5))
+        plt.bar(x - width/2, [same_counts.get(c, 0) for c in all_classes], width, label='Same location', color='#FF9800')
+        plt.bar(x + width/2, [diff_counts.get(c, 0) for c in all_classes], width, label='Different location', color='#9C27B0')
+        plt.xticks(x, all_classes)
+        plt.title('Duplicate Predictions per Tooth Number')
+        plt.xlabel('Enumeration Class')
+        plt.ylabel('Count')
+        plt.legend()
+        if export_dir and split_name:
+            plt.savefig(os.path.join(export_dir,split_name,'duplicate_predictions_per_tooth.png'),dpi=300)
+        plt.show()
+    else:
+        print("No duplicate tooth predictions found.")
+
+    # ---- 3. missing per tooth number ----
+    missing_df = log_df[log_df['event'] == 'missing_teeth']
+    if len(missing_df) > 0:
+        missing_expanded = missing_df['enum_class'].str.split(' & ').explode()
+        plt.figure(figsize=(8, 5))
+        missing_counts = missing_expanded.value_counts().sort_index()
+        plt.bar(missing_counts.index, missing_counts.values, color='#F44336')
+        plt.title('Missing Teeth per Enumeration Class')
+        plt.xlabel('Enumeration Class')
+        plt.ylabel('Count')
+        for i, v in enumerate(missing_counts.values):
+            plt.text(i, v + 0.3, str(v), ha='center')
+        if export_dir and split_name:
+            plt.savefig(os.path.join(export_dir,split_name,'missing_teeth_per_class.png'),dpi=300)
+        plt.show()
+        print("Note: a missing tooth number isn't necessarily an error, not every quadrant has all", n_enum_classes, "teeth present.")
+    else:
+        print("No missing teeth found.")
+
+    # ---- 4. already-labeled skips (informational, not a warning) ----
+    skipped_df = log_df[log_df['event'] == 'skipped_already_labeled']
+    print(f"\nPredictions skipped because the tooth already had a disease label: {len(skipped_df)}")
+
+    # ---- 5. possible cross-quadrant leaks ----
+    leak_df = log_df[log_df['event'] == 'possible_cross_quadrant_leak']
+    if len(leak_df) > 0:
+        plt.figure(figsize=(8, 5))
+        leak_counts = leak_df['enum_class'].value_counts().sort_index()
+        plt.bar(leak_counts.index, leak_counts.values, color='#795548')
+        plt.title('Possible Cross-Quadrant Leaks by Tooth Number')
+        plt.xlabel('Enumeration Class')
+        plt.ylabel('Count')
+        if export_dir and split_name:
+            plt.savefig(os.path.join(export_dir,split_name,'possible_leaks_per_class.png'),dpi=300)
+        plt.show()
+        print(f"Total possible cross-quadrant leaks flagged: {len(leak_df)} (heuristic, worth a manual look)")
+    else:
+        print("No possible cross-quadrant leaks flagged.")
+
+    # ---- 6. possible background predictions ----
+    bg_df = log_df[log_df['event'] == 'possible_background_prediction']
+    if len(bg_df) > 0:
+        plt.figure(figsize=(8, 5))
+        bg_counts = bg_df['enum_class'].value_counts().sort_index()
+        plt.bar(bg_counts.index, bg_counts.values, color='#607D8B')
+        plt.title('Possible Background Predictions by Tooth Number')
+        plt.xlabel('Enumeration Class')
+        plt.ylabel('Count')
+        if export_dir and split_name:
+            plt.savefig(os.path.join(export_dir,split_name,'possible_background_per_class.png'),dpi=300)
+        plt.show()
+        print(f"Total possible background predictions flagged: {len(bg_df)} (heuristic, worth a manual look)")
+    else:
+        print("No possible background predictions flagged.")
+
+    # ---- 7. Distribution of low confidence, depending on tooth number ----
+    low_conf_df = log_df[log_df['event'] == 'low_confidence']
+    if len(low_conf_df) > 0:
+        plt.figure(figsize=(10, 5))
+        for cls_id in sorted(low_conf_df['enum_class'].unique()):
+            subset = low_conf_df[low_conf_df['enum_class'] == cls_id]
+            plt.scatter([cls_id] * len(subset), subset['confidence'], alpha=0.6)
+        plt.axhline(y=low_conf_threshold, color='red', linestyle='--', label=f'Threshold ({low_conf_threshold})')
+        plt.title('Low Confidence Predictions by Tooth Number')
+        plt.xlabel('Enumeration Class')
+        plt.ylabel('Confidence')
+        plt.legend()
+        if export_dir and split_name:
+            plt.savefig(os.path.join(export_dir,split_name,'low_confidence_by_tooth.png'),dpi=300)
+        plt.show()
+
+        print(f"\nTotal low confidence warnings: {len(low_conf_df)}")
+        print(low_conf_df.groupby('enum_class')['confidence'].agg(['count', 'mean', 'min']))
+    else:
+        print("No low confidence predictions found.")
+
+    # ---- 8. Calculate the avg for high confidence & low confidence ----
+    all_conf_events = log_df[log_df['confidence'].notna()]
+    high_conf_avg = low_conf_avg = None
+    if len(all_conf_events) > 0:
+        high_conf_events = all_conf_events[all_conf_events['confidence'] >= low_conf_threshold]
+        low_conf_events = all_conf_events[all_conf_events['confidence'] < low_conf_threshold]
+
+        high_conf_avg = high_conf_events['confidence'].mean()
+        low_conf_avg = low_conf_events['confidence'].mean()
+        overall_std = all_conf_events['confidence'].std()
+
+        gap = (high_conf_avg - low_conf_avg) if not np.isnan(low_conf_avg) else None
+        low_count = len(low_conf_events)
+
+        print(f"\nAverage HIGH confidence (>= {low_conf_threshold}): {high_conf_avg:.3f}")
+        print(f"Average LOW confidence  (< {low_conf_threshold}): {low_conf_avg:.3f}" if not np.isnan(low_conf_avg) else "Average LOW confidence: N/A (no low conf events)")
+
+        if gap is not None:
+            # Reliability check: small sample sizes produce misleading gaps
+            if low_count < 5:
+                print(f"Confidence Gap: {gap:.3f}  (low sample size n={low_count}, result not reliable)")
+            else:
+                # Classify gap relative to the overall spread of the data (std),
+                # instead of using fixed arbitrary thresholds
+                if overall_std == 0 or np.isnan(overall_std):
+                    severity = 'undetermined (no variance in data)'
+                elif gap > 2 * overall_std:
+                    severity = 'large, model is inconsistent'
+                elif gap > overall_std:
+                    severity = 'moderate'
+                else:
+                    severity = 'small, model is fairly stable'
+                print(f"Confidence Gap: {gap:.3f}  (std={overall_std:.3f}, n_low={low_count} -> {severity})")
+
+    # ---- 9. Heatmap: confusion between a duplicated tooth and a missing one ----
+    # only duplicate_diff_location is used here: two boxes for the same tooth
+    # number in different spots often means the model actually confused that
+    # tooth number with a genuinely different, missing one in the same image
+    if len(dup_diff_df) > 0:
+        confusion_pairs = []
+        for fname in dup_diff_df['File_Name'].unique():
+            dup_classes = dup_diff_df[dup_diff_df['File_Name'] == fname]['enum_class'].tolist()
+            missing_for_img = log_df[(log_df['File_Name'] == fname) & (log_df['event'] == 'missing_teeth')]
+            if len(missing_for_img) > 0:
+                missing_list = missing_for_img.iloc[0]['enum_class'].split(' & ')
+                for dc in dup_classes:
+                    for mc in missing_list:
+                        confusion_pairs.append((dc, mc))
+
+        if confusion_pairs:
+            confusion_df = pd.DataFrame(confusion_pairs, columns=['Predicted_Extra', 'Actually_Missing'])
+            pivot = confusion_df.groupby(['Predicted_Extra', 'Actually_Missing']).size().unstack(fill_value=0)
+
+            plt.figure(figsize=(8, 6))
+            plt.imshow(pivot, cmap='Reds')
+            plt.colorbar(label='Count')
+            plt.xticks(range(len(pivot.columns)), pivot.columns, rotation=45)
+            plt.yticks(range(len(pivot.index)), pivot.index)
+            plt.xlabel('Actually Missing Tooth')
+            plt.ylabel('Predicted Extra (Duplicate) Tooth')
+            plt.title('Tooth Confusion: Duplicate vs Missing (same image)')
+            for i in range(len(pivot.index)):
+                for j in range(len(pivot.columns)):
+                    plt.text(j, i, pivot.iloc[i, j], ha='center', va='center')
+            plt.tight_layout()
+            if export_dir and split_name:
+                plt.savefig(os.path.join(export_dir,split_name,'tooth_confusion_heatmap.png'),dpi=300)
+            plt.show()
+        else:
+            print("\nNo clear duplicate-missing confusion pattern found in the same images.")
+
+    # ---- 10. Worst images had misleads ----
+    problem_events = log_df[log_df['event'].isin([
+        'duplicate_same_location', 'duplicate_diff_location',
+        'possible_cross_quadrant_leak', 'possible_background_prediction',
+        'low_confidence', 'missing_teeth'
+    ])]
+    worst_images = problem_events['File_Name'].value_counts().head(10)
+    if len(worst_images) > 0:
+        print("\nTop 10 problematic images (most warnings):")
+        print(worst_images)
+
+    # ---- 11. Export CSV (Optional) ----
+    if export_dir and split_name:
+        worst_df = problem_events[problem_events['File_Name'].isin(worst_images.index)]
+        worst_df.to_csv(os.path.join(export_dir,split_name,f'worst_{split_name}_images.csv'), index=False)
+        print(f"\nExported worst images log to: {os.path.join(export_dir,split_name)}")
+
+    return {
+        'total_images': boxes_df['File_Name'].nunique(),
+        'within_max_teeth': within_range,
+        'over_max_teeth': over_range,
+        'duplicate_same_location_events': len(dup_same_df),
+        'duplicate_diff_location_events': len(dup_diff_df),
+        'possible_leak_events': len(leak_df),
+        'possible_background_events': len(bg_df),
+        'skipped_already_labeled_events': len(skipped_df),
+        'missing_events': len(missing_df),
+        'low_confidence_events': len(low_conf_df),
+        'avg_high_confidence': high_conf_avg,
+        'avg_low_confidence': low_conf_avg,
+    }
+
+
 def compare_best_vs_last(models_yaml=None, model_name=None, original_images_path=None,
                           annotations_df_path=None, results_csv_path=None, export_result_path=None, conf_threshold=0.3, verbose=False):
     result = {}
