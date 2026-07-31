@@ -127,7 +127,7 @@ def smart_predict(yolo_model, images_path, specific_image_name=None, conf_thresh
     plt.show()
 
 
-def export_enum_by_quad_using_model(quadrant_model, original_images_path, annotations_df=None,
+def export_quadrants_using_quad_model(quadrant_model, original_images_path, annotations_df=None,
                                     output_root=os.getcwd(),
                                     conf_threshold=0.3,
                                     debugging=False, debug_limit=5,
@@ -586,7 +586,7 @@ def compare_best_vs_last(models_yaml=None, model_name=None, original_images_path
         print(f"{model_name} - {checkpoint_name}")
         model = YOLO(weights_path)
 
-        log_df = export_enum_by_quad_using_model(
+        log_df = export_quadrants_using_quad_model(
             model,
             original_images_path,
             annotations_df,
