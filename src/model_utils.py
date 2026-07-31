@@ -1074,11 +1074,13 @@ def analyze_full_teeth_predictions(log_df, low_conf_threshold=0.6, n_enum_classe
     }
 
 
-def compare_best_vs_last(models_yaml=None, model_name=None, stage='quad',
+def compare_best_vs_last(data_yaml,models_yaml=None, stage='quad',
                           original_images_path=None, annotations_df_path=None,
-                          images_root=None, labels_root=None,
                           results_csv_path=None, export_result_path=None,
                           conf_threshold=0.3, verbose=False):
+
+    images_root = data_yaml['test'] 
+    labels_root = data_yaml['test'].replace('images','labels') 
 
     if stage not in ('quad', 'enum'):
         print(f"Unknown stage '{stage}', expected 'quad' or 'enum'.")
@@ -1162,7 +1164,7 @@ def compare_best_vs_last(models_yaml=None, model_name=None, stage='quad',
             return result
 
     for model_key in models_yaml.keys():
-        if model_name in model_key:
+        if stage in model_key:
             model_name = model_key
 
     models_config = models_yaml[model_name]
