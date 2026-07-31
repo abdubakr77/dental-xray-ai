@@ -1074,8 +1074,16 @@ def analyze_full_teeth_predictions(log_df, low_conf_threshold=0.6, n_enum_classe
     }
 
 
-def compare_best_vs_last(models_yaml=None, model_name=None, original_images_path=None,
-                          annotations_df_path=None, results_csv_path=None, export_result_path=None, conf_threshold=0.3, verbose=False):
+def compare_best_vs_last(models_yaml=None, model_name=None, stage='quad',
+                          original_images_path=None, annotations_df_path=None,
+                          images_root=None, labels_root=None,
+                          results_csv_path=None, export_result_path=None,
+                          conf_threshold=0.3, verbose=False):
+
+    if stage not in ('quad', 'enum'):
+        print(f"Unknown stage '{stage}', expected 'quad' or 'enum'.")
+        return
+
     result = {}
     if results_csv_path:
         df = pd.read_csv(results_csv_path)
@@ -1141,19 +1149,26 @@ def compare_best_vs_last(models_yaml=None, model_name=None, original_images_path
         if models_yaml is None:
             return result
 
-    annotations_df = pd.read_pickle(annotations_df_path)
-    if original_images_path is None or annotations_df is None:
-        print("models_yaml was given but original_images_path or annotations_df is missing, skipping test set check.")
-        return result
+    # ---- check we have what this stage needs before touching the test set ----
+    annotations_df = None
+    if stage == 'quad':
+        if original_images_path is None or annotations_df_path is None:
+            print("stage='quad' needs original_images_path and annotations_df_path, skipping test set check.")
+            return result
+        annotations_df = pd.read_pickle(annotations_df_path)
+    elif stage == 'enum':
+        if images_root is None or labels_root is None:
+            print("stage='enum' needs images_root and labels_root, skipping test set check.")
+            return result
 
     for model_key in models_yaml.keys():
         if model_name in model_key:
             model_name = model_key
-    
+
     models_config = models_yaml[model_name]
 
     print("")
-    print("Running best and last weights on the test set")
+    print(f"Running best and last weights on the test set (stage: {stage})")
 
     weight_results = {}
 
@@ -1162,25 +1177,47 @@ def compare_best_vs_last(models_yaml=None, model_name=None, original_images_path
         print(f"{model_name} - {checkpoint_name}")
         model = YOLO(weights_path)
 
-        log_df = export_quadrants_using_quad_model(
-            model,
-            original_images_path,
-            annotations_df,
-            export_labels=False,
-            export_images=False,
-            conf_threshold=conf_threshold,
-            clear_existing=False,
-            verbose=verbose,
-        )
+        if stage == 'quad':
+            log_df = export_quadrants_using_quad_model(
+                model,
+                original_images_path,
+                annotations_df,
+                export_labels=False,
+                export_images=False,
+                conf_threshold=conf_threshold,
+                clear_existing=False,
+                verbose=verbose,
+            )
+            n_duplicate = (log_df['event'] == 'duplicate_quad').sum()
+            n_missing = (log_df['event'] == 'missing_quad').sum()
+            n_leak = 0
+            n_background = 0
 
-        n_duplicate = (log_df['event'] == 'duplicate_quad').sum()
+        else:  # stage == 'enum'
+            log_df = export_teeth_in_quad_using_enum_model(
+                model,
+                images_root,
+                labels_root,
+                export_labels=False,
+                export_images=False,
+                conf_threshold=conf_threshold,
+                clear_existing=False,
+                verbose=verbose,
+            )
+            # same_location + diff_location both represent a dropped duplicate box,
+            # so they're combined into one duplicate count here for comparability
+            # with the quad stage
+            n_duplicate = log_df['event'].isin(['duplicate_same_location', 'duplicate_diff_location']).sum()
+            n_missing = (log_df['event'] == 'missing_teeth').sum()
+            n_leak = (log_df['event'] == 'possible_cross_quadrant_leak').sum()
+            n_background = (log_df['event'] == 'possible_background_prediction').sum()
+
         n_low_conf = (log_df['event'] == 'low_confidence').sum()
-        n_missing = (log_df['event'] == 'missing_quad').sum()
         n_success = (log_df['event'] == 'successful_detection').sum()
 
         avg_conf = log_df.loc[log_df['event'] == 'successful_detection', 'confidence'].mean()
 
-        total_errors = n_duplicate + n_low_conf + n_missing
+        total_errors = n_duplicate + n_low_conf + n_missing + n_leak + n_background
 
         weight_results[f"{model_name}_{checkpoint_name}"] = {
             'model_name': model_name,
@@ -1188,13 +1225,20 @@ def compare_best_vs_last(models_yaml=None, model_name=None, original_images_path
             'n_duplicate': n_duplicate,
             'n_low_conf': n_low_conf,
             'n_missing': n_missing,
+            'n_leak': n_leak,
+            'n_background': n_background,
             'n_success': n_success,
             'avg_confidence': avg_conf,
             'total_errors': total_errors,
             'log_df': log_df,
         }
 
-        print(f"  duplicates: {n_duplicate}, low_confidence: {n_low_conf}, missing: {n_missing}, successful: {n_success}, avg_conf: {avg_conf:.4f}")
+        if stage == 'enum':
+            print(f"  duplicates: {n_duplicate}, low_confidence: {n_low_conf}, missing: {n_missing}, "
+                  f"leaks: {n_leak}, background: {n_background}, successful: {n_success}, avg_conf: {avg_conf:.4f}")
+        else:
+            print(f"  duplicates: {n_duplicate}, low_confidence: {n_low_conf}, missing: {n_missing}, "
+                  f"successful: {n_success}, avg_conf: {avg_conf:.4f}")
 
     print("")
     print("Test set summary")
