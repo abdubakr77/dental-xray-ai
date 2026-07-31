@@ -1,6 +1,6 @@
-train: 'C:\Users\ibrah.HIMA\OneDrive\Desktop\Full AI\Projects\GitHub - Kaggle Projects\dental-xray-ai\Data\Processed\Stage 3 (Disease Classifier)\train\'
-val: 'C:\Users\ibrah.HIMA\OneDrive\Desktop\Full AI\Projects\GitHub - Kaggle Projects\dental-xray-ai\Data\Processed\Stage 3 (Disease Classifier)\valid\'
-test: 'C:\Users\ibrah.HIMA\OneDrive\Desktop\Full AI\Projects\GitHub - Kaggle Projects\dental-xray-ai\Data\Processed\Stage 3 (Disease Classifier)\test\'
+train: '../Data/Processed/Stage 3 (Disease Classifier)/train/'
+val: '../Data/Processed/Stage 3 (Disease Classifier)/valid/'
+test: '../Data/Processed/Stage 3 (Disease Classifier)/test/'
 
 nc: 5
 names: ['Impacted','Caries','Periapical','Deep Caries','No Disease']

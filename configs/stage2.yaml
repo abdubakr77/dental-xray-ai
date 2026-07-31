@@ -1,11 +1,11 @@
 paths:
   original_images_path: ../Data/Raw/DENTEX CHALLENGE 2023/Training_data/quadrant-enumeration/xrays
   original_json_path: ../Data/Raw/DENTEX CHALLENGE 2023/Training_data/quadrant-enumeration/train_quadrant_enumeration.json
-  s2_main_path: ..\Data\Processed\Stage 2 (Enumeration Detection)
-  runs_s2_output: ..\Runs\Stage 2
+  s2_main_path: ../Data/Processed/Stage 2 (Enumeration Detection)
+  runs_s2_output: ../Runs/Stage 2
 
 model_args:
-  data: ..\Data\Processed\Stage 2 (Enumeration Detection)\data.yaml
+  data: ../Data/Processed/Stage 2 (Enumeration Detection)/data.yaml
   model: ../Models/yolo26s.pt
   epochs: 70
   save: True
@@ -21,7 +21,7 @@ model_args:
   workers: 4
   project: Runs
   name: Stage 2
-  save_dir: ..\Runs\Stage 2
+  save_dir: ../Runs/Stage 2
   auto_augment: None
   augment: True
   mosaic: 0.0

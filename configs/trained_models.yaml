@@ -1,9 +1,9 @@
 quadrant_detection_model:
-  best: ..\Runs\Stage 1\weights\best.pt
-  last: ..\Runs\Stage 1\weights\last.pt
+  best: ../Runs/Stage 1/weights/best.pt
+  last: ../Runs/Stage 1/weights/last.pt
 enumeration_detection_model:
-  best: ..\Runs\Stage 2\weights\best.pt
-  last: ..\Runs\Stage 2\weights\last.pt
+  best: ../Runs/Stage 2/weights/best.pt
+  last: ../Runs/Stage 2/weights/last.pt
 disease_classification_model:
-  best: ..\Runs\Stage 3\weights\best.pt
-  last: ..\Runs\Stage 3\weights\last.pt
+  best: ../Runs/Stage 3/weights/best.pt
+  last: ../Runs/Stage 3/weights/last.pt

@@ -1,13 +1,13 @@
 paths:
   original_images_path: ../Data/Raw/DENTEX CHALLENGE 2023/Training_data/quadrant-enumeration-disease/xrays
   original_json_path: ../Data/Raw/DENTEX CHALLENGE 2023/Training_data/quadrant-enumeration-disease/train_quadrant_enumeration_disease.json
-  s2_cont_main_path: ..\Data\Processed\Stage 2 Continued (Healthy & Disease Enumeration Detection)
-  runs_s2_cont_output: ..\Runs\Stage 2 Continued
+  s2_cont_main_path: ../Data/Processed/Stage 2 Continued (Healthy & Disease Enumeration Detection)
+  runs_s2_cont_output: ../Runs/Stage 2 Continued
 
 
 model_args:
-  data: ..\Data\Processed\Stage 2 Continued (Healthy & Disease Enumeration Detection)\data.yaml
-  model: ..\Runs\Stage 2 Continued\weights\best.pt
+  data: ../Data/Processed/Stage 2 Continued (Healthy & Disease Enumeration Detection)/data.yaml
+  model: ../Runs/Stage 2 Continued/weights/best.pt
   epochs: 50
   save: True
   imgsz: 1280
@@ -22,7 +22,7 @@ model_args:
   workers: 4
   project: Runs
   name: Stage 2 Continued
-  save_dir: ..\Runs\Stage 2 Continued
+  save_dir: ../Runs/Stage 2 Continued
   auto_augment: None
   augment: True
   mosaic: 0.0

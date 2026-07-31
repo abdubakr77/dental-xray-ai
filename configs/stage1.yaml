@@ -1,11 +1,11 @@
 paths:
   original_images_path: ../Data/Raw/DENTEX CHALLENGE 2023/Training_data/quadrant/xrays
   original_json_path: ../Data/Raw/DENTEX CHALLENGE 2023/Training_data/quadrant/train_quadrant.json
-  s1_main_path: ..\Data\Processed\Stage 1 (Quadrant Detection)
-  runs_s1_output: ..\Runs\Stage 1
+  s1_main_path: ../Data/Processed/Stage 1 (Quadrant Detection)
+  runs_s1_output: ../Runs/Stage 1
 
 model_args:
-  data: ..\Data\Processed\Stage 1 (Quadrant Detection)\data.yaml
+  data: ../Data/Processed/Stage 1 (Quadrant Detection)/data.yaml
   model: ../Models/yolo26s.pt
   epochs: 50
   save: True
@@ -21,7 +21,7 @@ model_args:
   workers: 4
   project: Runs
   name: Stage 1
-  save_dir: ..\Runs\Stage 1
+  save_dir: ../Runs/Stage 1
   auto_augment: None
   augment: True
   mosaic: 0.0

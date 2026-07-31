@@ -1,6 +1,6 @@
-train: 'C:\Users\ibrah.HIMA\OneDrive\Desktop\Full AI\Projects\GitHub - Kaggle Projects\dental-xray-ai\Data\Processed\Stage 2 (Enumeration Detection)\train\images'
-val: 'C:\Users\ibrah.HIMA\OneDrive\Desktop\Full AI\Projects\GitHub - Kaggle Projects\dental-xray-ai\Data\Processed\Stage 2 (Enumeration Detection)\valid\images'
-test: 'C:\Users\ibrah.HIMA\OneDrive\Desktop\Full AI\Projects\GitHub - Kaggle Projects\dental-xray-ai\Data\Processed\Stage 2 (Enumeration Detection)\test\images'
+train: '../Data/Processed/Stage 2 (Enumeration Detection)/train/images'
+val: '../Data/Processed/Stage 2 (Enumeration Detection)/valid/images'
+test: '../Data/Processed/Stage 2 (Enumeration Detection)/test/images'
 
 nc: 8
 names: [0,1,2,3,4,5,6,7]
