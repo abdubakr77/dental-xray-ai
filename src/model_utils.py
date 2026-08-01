@@ -1074,13 +1074,14 @@ def analyze_full_teeth_predictions(log_df, low_conf_threshold=0.6, n_enum_classe
     }
 
 
-def compare_best_vs_last(data_yaml,models_yaml=None, stage='quad',
+def compare_best_vs_last(data_yaml,models_yaml=None, stage='quad', split_name='test',
                           original_images_path=None, annotations_df_path=None,
-                          results_csv_path=None, export_result_path=None,
+                          results_csv_path=None, main_result_path=None,
                           conf_threshold=0.3, verbose=False):
 
-    images_root = data_yaml['test'] 
-    labels_root = data_yaml['test'].replace('images','labels') 
+
+    images_root = data_yaml[split_name] 
+    labels_root = data_yaml[split_name].replace('images','labels') 
 
     if stage not in ('quad', 'enum'):
         print(f"Unknown stage '{stage}', expected 'quad' or 'enum'.")
@@ -1253,7 +1254,8 @@ def compare_best_vs_last(data_yaml,models_yaml=None, stage='quad',
 
     result['test_set_results'] = weight_results
 
-    if export_result_path:
+    if main_result_path and split_name:
+        export_result_path = os.path.join(main_result_path,split_name)
         import pickle
         file_path = os.path.join(export_result_path, 'result_summary.pkl')
         with open(file_path, "wb") as f:
