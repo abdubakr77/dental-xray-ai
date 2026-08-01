@@ -781,6 +781,22 @@ def export_teeth_in_quad_using_enum_model(enum_model, images_root, labels_root,
         log_df = pd.DataFrame(log_records)
         return log_df
  
+ 
+def get_review_candidates(log_df):
+    """
+    Pull the images flagged during export_teeth_in_quad_using_enum_model for
+    manual review, with the reasons attached. Meant to be looked at and
+    decided on by hand, not fed into an automatic delete step.
+ 
+    Args:
+        log_df: the DataFrame returned by export_teeth_in_quad_using_enum_model
+ 
+    Returns:
+        a DataFrame with one row per flagged image: File_Name and reasons
+    """
+    review_df = log_df[log_df['event'] == 'needs_manual_review'][['File_Name', 'enum_class']].copy()
+    review_df = review_df.rename(columns={'enum_class': 'reasons'})
+    return review_df.reset_index(drop=True)
 
 
 def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_dir=None, split_name=None):
