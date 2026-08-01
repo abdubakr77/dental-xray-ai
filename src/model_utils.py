@@ -1080,8 +1080,8 @@ def compare_best_vs_last(data_yaml,models_yaml=None, stage='quad', split_name='t
                           conf_threshold=0.3, verbose=False):
 
 
-    images_root = data_yaml[split_name] 
-    labels_root = data_yaml[split_name].replace('images','labels') 
+    images_root = data_yaml['val' if split_name == 'valid' else split_name] 
+    labels_root = data_yaml['val' if split_name == 'valid' else split_name].replace('images','labels') 
 
     if stage not in ('quad', 'enum'):
         print(f"Unknown stage '{stage}', expected 'quad' or 'enum'.")
@@ -1220,7 +1220,7 @@ def compare_best_vs_last(data_yaml,models_yaml=None, stage='quad', split_name='t
 
         avg_conf = log_df.loc[log_df['event'] == 'successful_detection', 'confidence'].mean()
 
-        total_errors = n_duplicate + n_low_conf + n_missing + n_leak + n_background
+        total_errors = n_duplicate + n_low_conf + n_leak + n_background
 
         weight_results[f"{model_name}_{checkpoint_name}"] = {
             'model_name': model_name,
