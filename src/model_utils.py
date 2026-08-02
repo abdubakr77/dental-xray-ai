@@ -1358,7 +1358,6 @@ def compare_best_vs_last(data_yaml,models_yaml=None, stage='quad', split_name='t
             worst_images = problem_events['File_Name'].value_counts().head(10)
             if len(worst_images) > 0:
                 print("\nTop 10 problematic images (most warnings):")
-                print(worst_images)
                 worst_df = problem_events[problem_events['File_Name'].isin(worst_images.index)]
 
 
@@ -1390,7 +1389,6 @@ def compare_best_vs_last(data_yaml,models_yaml=None, stage='quad', split_name='t
             worst_images = problem_events['File_Name'].value_counts().head(10)
             if len(worst_images) > 0:
                 print("\nTop 10 problematic images (most warnings):")
-                print(worst_images)
                 worst_df = problem_events[problem_events['File_Name'].isin(worst_images.index)]
 
         n_low_conf = (log_df['event'] == 'low_confidence').sum()
