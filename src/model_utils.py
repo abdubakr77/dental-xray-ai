@@ -1353,6 +1353,15 @@ def compare_best_vs_last(data_yaml,models_yaml=None, stage='quad', split_name='t
             n_leak = 0
             n_background = 0
 
+            # ---- 7. Worst Images had Misleads ----
+            problem_events = log_df[log_df['event'].isin(['duplicate_quad', 'missing_quad', 'low_confidence'])]
+            worst_images = problem_events['File_Name'].value_counts().head(10)
+            if len(worst_images) > 0:
+                print("\nTop 10 problematic images (most warnings):")
+                print(worst_images)
+                worst_df = problem_events[problem_events['File_Name'].isin(worst_images.index)]
+
+
         else:  # stage == 'enum'
             log_df = export_teeth_in_quad_using_enum_model(
                 model,
@@ -1372,6 +1381,18 @@ def compare_best_vs_last(data_yaml,models_yaml=None, stage='quad', split_name='t
             n_leak = (log_df['event'] == 'possible_cross_quadrant_leak').sum()
             n_background = (log_df['event'] == 'possible_background_prediction').sum()
 
+            # ---- Worst images had misleads ----
+            problem_events = log_df[log_df['event'].isin([
+                'duplicate_same_location', 'duplicate_diff_location',
+                'possible_cross_quadrant_leak', 'possible_background_prediction',
+                'low_confidence', 'missing_teeth'
+            ])]
+            worst_images = problem_events['File_Name'].value_counts().head(10)
+            if len(worst_images) > 0:
+                print("\nTop 10 problematic images (most warnings):")
+                print(worst_images)
+                worst_df = problem_events[problem_events['File_Name'].isin(worst_images.index)]
+
         n_low_conf = (log_df['event'] == 'low_confidence').sum()
         n_success = (log_df['event'] == 'successful_detection').sum()
 
@@ -1390,6 +1411,7 @@ def compare_best_vs_last(data_yaml,models_yaml=None, stage='quad', split_name='t
             'n_success': n_success,
             'avg_confidence': avg_conf,
             'total_errors': total_errors,
+            'worst_images_df': worst_df,
             'log_df': log_df,
         }
 
