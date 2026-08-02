@@ -648,13 +648,13 @@ def export_teeth_in_quad_using_enum_model(enum_model, images_root, labels_root,
             if quad_name is not None:
                 edge_x = edge_margin_ratio * crop_w
                 edge_y = edge_margin_ratio * crop_h
-                if 'Upper' in quad_name and y1 <= edge_y:
+                if 'Upper' in quad_name and y2 >= crop_h - edge_y:
                     is_edge_touching = True
-                if 'Lower' in quad_name and y2 >= crop_h - edge_y:
+                if 'Lower' in quad_name and y1 <= edge_y:
                     is_edge_touching = True
-                if 'Right' in quad_name and x1 <= edge_x:
+                if 'Right' in quad_name and x2 >= crop_w - edge_x:
                     is_edge_touching = True
-                if 'Left' in quad_name and x2 >= crop_w - edge_x:
+                if 'Left' in quad_name and x1 <= edge_x:
                     is_edge_touching = True
  
             if is_edge_touching and median_area > 0 and box_area <= leak_area_ratio * median_area:
