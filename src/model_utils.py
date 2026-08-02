@@ -514,7 +514,8 @@ def export_teeth_in_quad_using_enum_model(enum_model, images_root, labels_root,
                     ex1, ey1, ex2, ey2 = _xywh_norm_to_xyxy_px(cx, cy, w, h, crop_w, crop_h)
                     existing_lines.append(line.strip())
                     existing_classes.add(cls_id)
-                    existing_boxes.append({'cls_id': cls_id, 'x1': ex1, 'y1': ey1, 'x2': ex2, 'y2': ey2})
+                    existing_boxes.append({'cls_id': cls_id, 'x1': ex1, 'y1': ey1, 'x2': ex2, 'y2': ey2,
+                                            'cx': cx, 'cy': cy, 'nw': w, 'nh': h})
  
         # ---- run the enum model on the crop ----
         results = enum_model.predict(img_path, conf=conf_threshold, verbose=False)[0]
@@ -757,11 +758,11 @@ def export_teeth_in_quad_using_enum_model(enum_model, images_root, labels_root,
                 print(f"Flagged for review: {fname} -> {'; '.join(review_reasons)}")
  
         if debugging:
-            debug_labels = [cls_id for cls_id, *_ in final_boxes] + list(existing_classes)
-            debug_bboxes = [(cx, cy, nw, nh) for _, cx, cy, nw, nh in final_boxes]
-            for line in existing_lines:
-                cls_id, cx, cy, nw, nh = line.split()
-                debug_bboxes.append((float(cx), float(cy), float(nw), float(nh)))
+            # pull labels and boxes from the SAME ordered list (existing_boxes) for the
+            # GT portion, instead of a list zipped against a set -- see note below
+            debug_labels = [cls_id for cls_id, *_ in final_boxes] + [b['cls_id'] for b in existing_boxes]
+            debug_bboxes = [(cx, cy, nw, nh) for _, cx, cy, nw, nh in final_boxes] + \
+                            [(b['cx'], b['cy'], b['nw'], b['nh']) for b in existing_boxes]
  
             all_images.append(img)
             all_bboxes.append(debug_bboxes)
