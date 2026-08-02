@@ -552,19 +552,42 @@ def export_teeth_in_quad_using_enum_model(enum_model, images_root, labels_root,
                 confidence, box = candidates[0]
                 accepted_boxes.append((cls_id, confidence, *box))
                 continue
- 
+
             # more than one box predicted the same tooth number: figure out if
             # they're really the same detection duplicated (high IoU) or two
             # genuinely different locations (model confused about where this
-            # tooth number is). Either way we only keep the highest-confidence one.
+            # tooth number is).
             max_iou = max(_iou_xyxy(a[1], b[1]) for a, b in combinations(candidates, 2))
             dup_event = 'duplicate_same_location' if max_iou >= duplicate_iou_threshold else 'duplicate_diff_location'
- 
-            candidates_sorted = sorted(candidates, key=lambda c: c[0], reverse=True)
-            best_conf, best_box = candidates_sorted[0]
+
+            # rank all candidates by confidence first, as before
+            ranked_indices = sorted(range(len(candidates)), key=lambda i: candidates[i][0], reverse=True)
+
+            # if the candidates sit at different physical spots, one of them may be a
+            # leak from the neighboring row (e.g. an upper tooth showing up in a
+            # Lower crop). Prefer whichever candidate's vertical position matches this
+            # crop's own quadrant side before falling back to confidence alone.
+            if dup_event == 'duplicate_diff_location' and quad_name is not None:
+                def matches_quadrant_side(box):
+                    y1, y2 = box[1], box[3]
+                    cy = (y1 + y2) / 2
+                    if 'Upper' in quad_name:
+                        return cy <= crop_h / 2
+                    if 'Lower' in quad_name:
+                        return cy >= crop_h / 2
+                    return True
+
+                matching_indices = [i for i in ranked_indices if matches_quadrant_side(candidates[i][1])]
+                if matching_indices:
+                    ranked_indices = matching_indices + [i for i in ranked_indices if i not in matching_indices]
+
+            best_idx = ranked_indices[0]
+            best_conf, best_box = candidates[best_idx]
             accepted_boxes.append((cls_id, best_conf, *best_box))
- 
-            for confidence, box in candidates_sorted[1:]:
+
+            for i, (confidence, box) in enumerate(candidates):
+                if i == best_idx:
+                    continue
                 log_records.append({
                     'File_Name': fname, 'event': dup_event,
                     'enum_class': cls_id, 'confidence': confidence,
