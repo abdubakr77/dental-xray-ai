@@ -136,7 +136,8 @@ def export_quadrants_using_quad_model(quadrant_model, original_images_path, anno
                                     clear_existing=True,
                                     verbose=False,
                                     export_labels=True,
-                                    export_images=True):
+                                    export_images=True,
+                                    specific_image_name=None):
 
     # ---- check + clear existing images/labels ----
     if clear_existing and not debugging:
@@ -182,7 +183,10 @@ def export_quadrants_using_quad_model(quadrant_model, original_images_path, anno
     for fname in tqdm(file_list):
 
         if debugging:
-            fname = np.random.choice(file_list)
+            if specific_image_name:
+                fname = specific_image_name
+            else:
+                fname = np.random.choice(file_list)
 
         img_path = os.path.join(original_images_path, fname)
         img = cv2.imread(img_path)
@@ -338,7 +342,8 @@ def export_teeth_in_quad_using_enum_model(enum_model, images_root, labels_root,
                                             clear_existing=True,
                                             verbose=False,
                                             export_labels=True,
-                                            export_images=True):
+                                            export_images=True,
+                                            specific_image_name=None):
     """
     Stage 2 Continued step: run the enumeration model on the quadrant crops that
     currently only have disease-tooth labels, and fill in the rest of the teeth.
@@ -471,7 +476,10 @@ def export_teeth_in_quad_using_enum_model(enum_model, images_root, labels_root,
     for fname in tqdm(file_list):
  
         if debugging:
-            fname = np.random.choice(file_list)
+            if specific_image_name:
+                fname = specific_image_name
+            else:
+                fname = np.random.choice(file_list)
  
         name_no_ext = os.path.splitext(fname)[0]
  
@@ -782,7 +790,7 @@ def export_teeth_in_quad_using_enum_model(enum_model, images_root, labels_root,
         return log_df
  
  
-def get_review_candidates(log_df):
+def get_review_candidates(log_df,return_df=False):
     """
     Pull the images flagged during export_teeth_in_quad_using_enum_model for
     manual review, with the reasons attached. Meant to be looked at and
@@ -796,7 +804,14 @@ def get_review_candidates(log_df):
     """
     review_df = log_df[log_df['event'] == 'needs_manual_review'][['File_Name', 'enum_class']].copy()
     review_df = review_df.rename(columns={'enum_class': 'reasons'})
-    return review_df.reset_index(drop=True)
+    review_df = review_df.reset_index(drop=True)
+    if return_df:
+        return review_df
+    else:
+        for idx in range(len(review_df)):
+            print(f"File Name: {review_df.iloc[idx]['File_Name']}") 
+            print(f"Reason: {review_df.iloc[idx]['reasons']}")
+            print("="*35)
 
 
 def analyze_quadrant_predictions(log_df, low_conf_threshold=0.6, export_dir=None, split_name=None):
