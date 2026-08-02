@@ -180,13 +180,14 @@ def export_quadrants_using_quad_model(quadrant_model, original_images_path, anno
 
     file_list = annotations_df['File_Name'].unique()
 
-    for fname in tqdm(file_list):
+    if debugging:
+        
+        if len(specific_image_name) >= 1 and type(specific_image_name) == list:
+            file_list = specific_image_name
+        else:
+            file_list = [np.random.choice(file_list)]
 
-        if debugging:
-            if specific_image_name:
-                fname = specific_image_name
-            else:
-                fname = np.random.choice(file_list)
+    for fname in tqdm(file_list):
 
         img_path = os.path.join(original_images_path, fname)
         img = cv2.imread(img_path)
@@ -464,6 +465,13 @@ def export_teeth_in_quad_using_enum_model(enum_model, images_root, labels_root,
  
     file_list = [f for f in os.listdir(images_root) if f.lower().endswith('.png')]
  
+    if debugging:
+        
+        if len(specific_image_name) >= 1 and type(specific_image_name) == list:
+            file_list = specific_image_name
+        else:
+            file_list = [np.random.choice(file_list)]
+    
     debug_count = 0
     all_images, all_labels, all_bboxes, all_filenames = [], [], [], []
     log_records = []
@@ -474,12 +482,6 @@ def export_teeth_in_quad_using_enum_model(enum_model, images_root, labels_root,
     QUAD_TAGS = ["UpperRight", "UpperLeft", "LowerLeft", "LowerRight"]
  
     for fname in tqdm(file_list):
- 
-        if debugging:
-            if specific_image_name:
-                fname = specific_image_name
-            else:
-                fname = np.random.choice(file_list)
  
         name_no_ext = os.path.splitext(fname)[0]
  
@@ -759,7 +761,7 @@ def export_teeth_in_quad_using_enum_model(enum_model, images_root, labels_root,
  
         if debugging:
             # pull labels and boxes from the SAME ordered list (existing_boxes) for the
-            # GT portion, instead of a list zipped against a set -- see note below
+            # GT portion, instead of a list zipped against a set
             debug_labels = [cls_id for cls_id, *_ in final_boxes] + [b['cls_id'] for b in existing_boxes]
             debug_bboxes = [(cx, cy, nw, nh) for _, cx, cy, nw, nh in final_boxes] + \
                             [(b['cx'], b['cy'], b['nw'], b['nh']) for b in existing_boxes]
