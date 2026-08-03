@@ -41,6 +41,92 @@ def draw_corner_box(img, x1, y1, x2, y2, label_name, confidence, color, length, 
         cv2.putText(img, text, (x1 + 5, y1 - 8), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 0), 2)
 
 
+def dedupe_gt_label_files(labels_root, iou_threshold=0.85, dry_run=True, verbose=False):
+    """
+    Remove exact and near-duplicate lines within each YOLO label file in
+    labels_root. This is a data-cleaning pass on the disease labels
+    themselves -- it doesn't touch images, doesn't run any model, and has
+    nothing to do with export_teeth_in_quad_using_enum_model beyond being a
+    sensible thing to run before it.
+
+    A tooth can genuinely carry more than one disease box -- different
+    conditions, visibly different box sizes or positions -- and that stays
+    untouched. What this removes is the other case: two lines with the same
+    class whose boxes are nearly identical (IoU >= iou_threshold), which
+    looks like the same annotation exported twice rather than two separate
+    findings. In the file that flagged this (train_481_LowerRight.txt), one
+    pair was byte-for-byte identical (IoU 1.0) and one pair was IoU ~0.91 --
+    same box, tiny floating-point drift between two export runs. The default
+    threshold sits below that to catch both while staying well clear of
+    genuinely different disease boxes on the same tooth, which look nothing
+    alike in size.
+
+    Args:
+        labels_root: folder of YOLO label .txt files to clean
+        iou_threshold: IoU above which two same-class lines in the same file
+            count as duplicates of each other
+        dry_run: if True (default), only reports what WOULD be removed --
+            no file is touched. Run this first, check the numbers, then
+            call again with dry_run=False to actually clean the files.
+        verbose: print each duplicate pair as it's found
+
+    Returns:
+        a DataFrame with one row per file that had duplicates:
+        File_Name, n_duplicates_removed
+    """
+    report_records = []
+    label_files = [f for f in os.listdir(labels_root) if f.lower().endswith('.txt')]
+
+    for fname in tqdm(label_files):
+        path = os.path.join(labels_root, fname)
+        with open(path, 'r') as f:
+            lines = [l.strip() for l in f if l.strip()]
+
+        parsed = []
+        for line in lines:
+            parts = line.split()
+            cls_id = int(float(parts[0]))
+            cx, cy, w, h = map(float, parts[1:5])
+            # scale doesn't matter for IoU as long as it's consistent, so this
+            # skips opening the image entirely -- just work in normalized space
+            x1, y1, x2, y2 = _xywh_norm_to_xyxy_px(cx, cy, w, h, 1.0, 1.0)
+            parsed.append({'line': line, 'cls_id': cls_id, 'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2})
+
+        keep = [True] * len(parsed)
+        n_removed = 0
+
+        for i in range(len(parsed)):
+            if not keep[i]:
+                continue
+            for j in range(i + 1, len(parsed)):
+                if not keep[j] or parsed[j]['cls_id'] != parsed[i]['cls_id']:
+                    continue
+                iou = _iou_xyxy((parsed[i]['x1'], parsed[i]['y1'], parsed[i]['x2'], parsed[i]['y2']),
+                                 (parsed[j]['x1'], parsed[j]['y1'], parsed[j]['x2'], parsed[j]['y2']))
+                if iou >= iou_threshold:
+                    keep[j] = False
+                    n_removed += 1
+                    if verbose:
+                        print(f"{fname}: duplicate tooth {parsed[i]['cls_id']} (IoU={iou:.3f}), removing one copy")
+
+        if n_removed > 0:
+            report_records.append({'File_Name': fname, 'n_duplicates_removed': n_removed})
+            if not dry_run:
+                with open(path, 'w') as f:
+                    for p, k in zip(parsed, keep):
+                        if k:
+                            f.write(p['line'] + "\n")
+
+    report_df = pd.DataFrame(report_records)
+    print(f"Files with duplicates: {len(report_df)} out of {len(label_files)}")
+    if len(report_df) > 0:
+        print(f"Total duplicate lines removed: {report_df['n_duplicates_removed'].sum()}")
+    if dry_run:
+        print("dry_run=True -- no files were changed. Re-run with dry_run=False to apply.")
+
+    return report_df
+
+
 def smart_predict(yolo_model, images_path, specific_image_name=None, conf_threshold=0.3, 
                   show_true_boxes = False, save_crop_output_image:str=False, 
                   save_output:bool=False, save_dir:str=None, 
