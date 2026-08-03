@@ -1,0 +1,47 @@
+File_Name,event,enum_class,confidence,n_boxes,crop_area
+train_143_UpperRight.png,duplicate_diff_location,0,0.38,7,337028.0
+train_143_UpperRight.png,duplicate_diff_location,3,0.82,7,337028.0
+train_143_UpperRight.png,low_confidence,3,0.44,7,337028.0
+train_143_UpperRight.png,missing_teeth,2 & 5 & 6,,7,
+train_172_LowerRight.png,duplicate_diff_location,3,0.62,12,492312.0
+train_172_LowerRight.png,duplicate_diff_location,2,0.83,12,492312.0
+train_172_LowerRight.png,duplicate_diff_location,0,0.95,12,492312.0
+train_172_LowerRight.png,duplicate_diff_location,1,0.95,12,492312.0
+train_230_LowerRight.png,duplicate_diff_location,2,0.71,6,355410.0
+train_230_LowerRight.png,low_confidence,4,0.57,6,355410.0
+train_230_LowerRight.png,low_confidence,0,0.52,6,355410.0
+train_230_LowerRight.png,missing_teeth,1 & 5 & 7,,6,
+train_251_LowerLeft.png,duplicate_diff_location,2,0.65,11,236256.0
+train_251_LowerLeft.png,duplicate_diff_location,1,0.96,11,236256.0
+train_251_LowerLeft.png,duplicate_diff_location,0,0.86,11,236256.0
+train_251_LowerLeft.png,possible_cross_quadrant_leak,0,0.95,11,236256.0
+train_251_LowerLeft.png,missing_teeth,0,,11,
+train_254_UpperLeft.png,duplicate_diff_location,2,0.52,7,352625.0
+train_254_UpperLeft.png,duplicate_diff_location,6,0.83,7,352625.0
+train_254_UpperLeft.png,low_confidence,1,0.36,7,352625.0
+train_254_UpperLeft.png,missing_teeth,0 & 5 & 7,,7,
+train_370_LowerRight.png,duplicate_diff_location,3,0.68,12,531125.0
+train_370_LowerRight.png,duplicate_diff_location,2,0.97,12,531125.0
+train_370_LowerRight.png,duplicate_diff_location,1,0.76,12,531125.0
+train_370_LowerRight.png,duplicate_diff_location,0,0.95,12,531125.0
+train_370_LowerRight.png,possible_cross_quadrant_leak,0,0.97,12,531125.0
+train_370_LowerRight.png,missing_teeth,0,,12,
+train_420_LowerLeft.png,duplicate_diff_location,1,0.52,6,436760.0
+train_420_LowerLeft.png,possible_cross_quadrant_leak,0,0.72,6,436760.0
+train_420_LowerLeft.png,low_confidence,3,0.41,6,436760.0
+train_420_LowerLeft.png,missing_teeth,0 & 5 & 6 & 7,,6,
+train_481_LowerRight.png,duplicate_same_location,5,0.38,7,696956.0
+train_481_LowerRight.png,possible_cross_quadrant_leak,0,0.79,7,696956.0
+train_481_LowerRight.png,low_confidence,2,0.32,7,696956.0
+train_481_LowerRight.png,missing_teeth,0 & 1 & 4,,7,
+train_616_LowerLeft.png,duplicate_diff_location,2,0.55,10,553848.0
+train_616_LowerLeft.png,duplicate_diff_location,0,0.55,10,553848.0
+train_616_LowerLeft.png,possible_cross_quadrant_leak,0,0.64,10,553848.0
+train_616_LowerLeft.png,low_confidence,1,0.32,10,553848.0
+train_616_LowerLeft.png,missing_teeth,0,,10,
+train_664_LowerRight.png,duplicate_diff_location,2,0.52,9,649444.0
+train_664_LowerRight.png,duplicate_diff_location,0,0.3,9,649444.0
+train_664_LowerRight.png,duplicate_diff_location,4,0.42,9,649444.0
+train_664_LowerRight.png,possible_cross_quadrant_leak,1,0.95,9,649444.0
+train_664_LowerRight.png,possible_cross_quadrant_leak,0,0.94,9,649444.0
+train_664_LowerRight.png,missing_teeth,0 & 1 & 5 & 6,,9,
