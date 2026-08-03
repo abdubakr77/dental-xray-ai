@@ -229,6 +229,7 @@ Data/Processed/Stage 2 (Enumeration Detection)/test
 Data/Processed/Stage 2 (Enumeration Detection)/train
 Data/Processed/Stage 2 (Enumeration Detection)/valid
 
+Data/Processed/Stage 2 Continued (Healthy & Disease Enumeration Detection)/Disease Only
 Data/Processed/Stage 2 Continued (Healthy & Disease Enumeration Detection)/test
 Data/Processed/Stage 2 Continued (Healthy & Disease Enumeration Detection)/train
 Data/Processed/Stage 2 Continued (Healthy & Disease Enumeration Detection)/valid

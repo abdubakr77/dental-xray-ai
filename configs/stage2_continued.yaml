@@ -4,6 +4,9 @@ paths:
   s2_cont_main_path: ../Data/Processed/Stage 2 Continued (Healthy & Disease Enumeration Detection)
   runs_s2_cont_output: ../Runs/Stage 2 Continued
 
+  DISEASE_ONLY:
+    s2_cont_main_path: ../Data/Processed/Stage 2 Continued (Healthy & Disease Enumeration Detection)/Disease Only
+
 
 model_args:
   data: ../Data/Processed/Stage 2 Continued (Healthy & Disease Enumeration Detection)/data.yaml
