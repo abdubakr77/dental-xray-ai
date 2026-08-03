@@ -1354,8 +1354,8 @@ def compare_best_vs_last(data_yaml,models_yaml=None, stage='quad', split_name='t
     images_root = data_yaml['val' if split_name == 'valid' else split_name] 
     labels_root = data_yaml['val' if split_name == 'valid' else split_name].replace('images','labels') 
 
-    if stage not in ('quad', 'enum'):
-        print(f"Unknown stage '{stage}', expected 'quad' or 'enum'.")
+    if stage not in ('quad', 'enum', 'enum_cont'):
+        print(f"Unknown stage '{stage}', expected 'quad', 'enum' or 'enum_cont'.")
         return
 
     result = {}
@@ -1475,7 +1475,7 @@ def compare_best_vs_last(data_yaml,models_yaml=None, stage='quad', split_name='t
                 worst_df = problem_events[problem_events['File_Name'].isin(worst_images.index)]
 
 
-        else:  # stage == 'enum'
+        else:  # stage == 'enum' or 'enum_cont'
             log_df = export_teeth_in_quad_using_enum_model(
                 model,
                 images_root,
