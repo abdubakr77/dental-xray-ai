@@ -1,0 +1,14 @@
+File_Name,event,enum_class,confidence,n_boxes,crop_area
+train_109_LowerLeft.png,missing_teeth,3 & 5 & 7,,6,
+train_109_LowerRight.png,missing_teeth,5 & 7,,6,
+train_109_UpperLeft.png,missing_teeth,4 & 7,,5,
+train_109_UpperRight.png,missing_teeth,3 & 5 & 7,,5,
+train_119_LowerLeft.png,missing_teeth,5 & 6 & 7,,5,
+train_119_LowerRight.png,missing_teeth,5 & 6 & 7,,5,
+train_119_UpperLeft.png,missing_teeth,4 & 6 & 7,,4,
+train_386_UpperRight.png,duplicate_diff_location,4,0.5,5,287742.0
+train_386_UpperRight.png,missing_teeth,4 & 7,,5,
+train_538_LowerRight.png,duplicate_same_location,7,0.38,9,451178.0
+train_538_LowerRight.png,missing_teeth,7,,9,
+train_565_UpperRight.png,duplicate_diff_location,2,0.46,4,285572.0
+train_565_UpperRight.png,missing_teeth,2 & 3 & 4 & 5 & 6 & 7,,4,
