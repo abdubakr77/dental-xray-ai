@@ -596,31 +596,28 @@ def export_teeth_in_quad_using_enum_model(enum_model, images_root, labels_root,
                 if verbose:
                     print(f"Warning: dropped a {dup_event} box for tooth {cls_id} in {fname}")
  
-        # ---- cross-class overlap resolution (new) ----
-        # same-class duplicates are handled above; this catches the other case
-        # from the screenshot: two DIFFERENT tooth numbers predicted on the same
-        # physical spot. Same idea, GT always wins, then highest confidence.
-        candidates = [{'cls_id': b['cls_id'], 'x1': b['x1'], 'y1': b['y1'], 'x2': b['x2'], 'y2': b['y2'],
-                       'confidence': None, 'is_gt': True} for b in existing_boxes]
-        candidates += [{'cls_id': cls_id, 'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
-                        'confidence': confidence, 'is_gt': False}
-                       for cls_id, confidence, x1, y1, x2, y2 in accepted_boxes]
-        candidates.sort(key=lambda b: (not b['is_gt'], -(b['confidence'] or 1.0)))
- 
-        kept_candidates = []
-        for cand in candidates:
+        # ---- cross-class overlap resolution ----
+        kept_candidates = [{'cls_id': b['cls_id'], 'x1': b['x1'], 'y1': b['y1'], 'x2': b['x2'], 'y2': b['y2'],
+                             'confidence': None, 'is_gt': True} for b in existing_boxes]
+
+        pred_candidates = sorted(
+            [{'cls_id': cls_id, 'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'confidence': confidence, 'is_gt': False}
+             for cls_id, confidence, x1, y1, x2, y2 in accepted_boxes],
+            key=lambda b: -b['confidence']
+        )
+
+        for cand in pred_candidates:
             cand_xyxy = (cand['x1'], cand['y1'], cand['x2'], cand['y2'])
             overlaps_kept = any(_iou_xyxy(cand_xyxy, (k['x1'], k['y1'], k['x2'], k['y2'])) >= duplicate_iou_threshold
                                  for k in kept_candidates)
             if overlaps_kept:
-                event = 'gt_overlap_conflict' if cand['is_gt'] else 'cross_class_overlap'
                 log_records.append({
-                    'File_Name': fname, 'event': event,
+                    'File_Name': fname, 'event': 'cross_class_overlap',
                     'enum_class': cand['cls_id'], 'confidence': cand['confidence'],
                     'n_boxes': n_predicted_boxes, 'crop_area': crop_h * crop_w
                 })
                 if verbose:
-                    print(f"Warning: dropped overlapping box (class {cand['cls_id']}, {event}) in {fname}")
+                    print(f"Warning: dropped overlapping box (class {cand['cls_id']}, cross_class_overlap) in {fname}")
                 continue
             kept_candidates.append(cand)
  
