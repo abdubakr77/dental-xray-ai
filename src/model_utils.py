@@ -430,7 +430,8 @@ def export_teeth_in_quad_using_enum_model(enum_model, images_root, labels_root,
                                             verbose=False,
                                             export_labels=True,
                                             export_images=True,
-                                            specific_image_name=None):
+                                            specific_image_name:list=None,
+                                            delete_files: list=None):
     """
     Stage 2 Continued step: run the enumeration model on the quadrant crops that
     currently only have disease-tooth labels, and fill in the rest of the teeth.
@@ -571,6 +572,16 @@ def export_teeth_in_quad_using_enum_model(enum_model, images_root, labels_root,
  
         name_no_ext = os.path.splitext(fname)[0]
  
+        if delete_files is not None and fname in delete_files:
+            try:
+                os.remove(os.path.join(images_root, f"{name_no_ext}.png"))
+                os.remove(os.path.join(labels_root, f"{name_no_ext}.txt"))
+                continue
+            except Exception as e:
+                print(f"Failed to remove {name_no_ext}: {e}")
+                break
+
+
         # recover which quadrant this crop came from, from the filename suffix
         # export_quadrants_using_quad_model gave it (e.g. "..._UpperRight")
         quad_name = None
