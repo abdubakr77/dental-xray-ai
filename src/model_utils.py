@@ -1345,7 +1345,7 @@ def analyze_full_teeth_predictions(log_df, low_conf_threshold=0.6, n_enum_classe
     }
 
 
-def compare_best_vs_last(data_yaml,models_yaml=None, stage='quad', split_name='test',
+def compare_best_vs_last(data_yaml,models_yaml=None, stage='quadrant', split_name='test',
                           original_images_path=None, annotations_df_path=None,
                           results_csv_path=None, main_result_path=None,
                           conf_threshold=0.3, verbose=False):
@@ -1354,8 +1354,8 @@ def compare_best_vs_last(data_yaml,models_yaml=None, stage='quad', split_name='t
     images_root = data_yaml['val' if split_name == 'valid' else split_name] 
     labels_root = data_yaml['val' if split_name == 'valid' else split_name].replace('images','labels') 
 
-    if stage not in ('quad', 'enum', 'enum_cont'):
-        print(f"Unknown stage '{stage}', expected 'quad', 'enum' or 'enum_cont'.")
+    if stage.strip().lower() not in ('quadrant', 'enumeration', 'enumeration_continued'):
+        print(f"Unknown stage '{stage}', expected 'quadrant', 'enumeration' or 'enumeration_continued'.")
         return
 
     result = {}
@@ -1425,18 +1425,18 @@ def compare_best_vs_last(data_yaml,models_yaml=None, stage='quad', split_name='t
 
     # ---- check we have what this stage needs before touching the test set ----
     annotations_df = None
-    if stage == 'quad':
+    if stage.strip().lower() == 'quadrant':
         if original_images_path is None or annotations_df_path is None:
             print("stage='quad' needs original_images_path and annotations_df_path, skipping test set check.")
             return result
         annotations_df = pd.read_pickle(annotations_df_path)
-    elif stage == 'enum':
+    elif stage.strip().lower() == 'enumeration' or stage.strip().lower() == 'enumeration_continued':
         if images_root is None or labels_root is None:
-            print("stage='enum' needs images_root and labels_root, skipping test set check.")
+            print("stage='enumeration' and 'enumeration_continued' needs images_root and labels_root, skipping test set check.")
             return result
 
     for model_key in models_yaml.keys():
-        if stage in model_key:
+        if stage.strip().lower() in model_key:
             model_name = model_key
 
     models_config = models_yaml[model_name]
@@ -1451,7 +1451,7 @@ def compare_best_vs_last(data_yaml,models_yaml=None, stage='quad', split_name='t
         print(f"{model_name} - {checkpoint_name}")
         model = YOLO(weights_path)
 
-        if stage == 'quad':
+        if stage.strip().lower() == 'quadrant':
             log_df = export_quadrants_using_quad_model(
                 model,
                 original_images_path,
@@ -1527,7 +1527,7 @@ def compare_best_vs_last(data_yaml,models_yaml=None, stage='quad', split_name='t
             'log_df': log_df,
         }
 
-        if stage == 'enum':
+        if stage.strip().lower() == 'enumeration' or stage.strip().lower() == 'enumeration_continued':
             print(f"  duplicates: {n_duplicate}, low_confidence: {n_low_conf}, missing: {n_missing}, "
                   f"leaks: {n_leak}, background: {n_background}, successful: {n_success}, avg_conf: {avg_conf:.4f}")
         else:
