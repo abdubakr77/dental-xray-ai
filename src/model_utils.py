@@ -8,6 +8,10 @@ from tqdm import tqdm
 import pandas as pd
 from ultralytics import YOLO
 from itertools import combinations
+from pathlib import Path
+import shutil
+import random
+from PIL import Image
 
 def draw_corner_box(img, x1, y1, x2, y2, label_name, confidence, color, length, thickness):
     """
@@ -1553,3 +1557,77 @@ def compare_best_vs_last(data_yaml,models_yaml=None, stage='quadrant', split_nam
             pickle.dump(result, f)
 
     return result
+
+
+
+# ==========================================================================================================================================================
+# ----------------------------------------------------------------------------------------------------------------------------------------------------------
+# ==========================================================================================================================================================
+
+
+
+def _load_class_images(class_dir, target_size):
+    paths = [p for p in Path(class_dir).iterdir() if p.is_file()]
+    arrays = []
+    for p in paths:
+        img = Image.open(p).convert('RGB').resize(target_size)
+        arrays.append(np.asarray(img, dtype=np.uint8))
+    return paths, np.stack(arrays) if arrays else np.empty((0, *target_size, 3), dtype=np.uint8)
+ 
+ 
+def balance_with_smote(originals_root, target_size=(128, 128), random_state=42):
+    """
+    Balances every class folder under originals_root to match the largest
+    class, using SMOTE in pixel space. New images are saved back into their
+    class folder with a "_smote_N" suffix.
+ 
+    Args:
+        originals_root: folder containing one subfolder per class, original
+            (non-augmented) images only
+        target_size: (width, height) all images get resized to before SMOTE
+            and before saving the synthetic ones -- keep this modest
+            (128x128 default), pixel-space SMOTE on large images is slow and
+            the interpolation gets noisier the more dimensions it has to work in
+        random_state: for reproducibility
+ 
+    Returns:
+        dict of class_name -> number of synthetic images created
+    """
+    from imblearn.over_sampling import SMOTE
+ 
+    originals_root = Path(originals_root)
+    class_dirs = [d for d in originals_root.iterdir() if d.is_dir()]
+ 
+    all_paths, all_arrays, all_labels, class_names = [], [], [], []
+    for class_dir in class_dirs:
+        paths, arrays = _load_class_images(class_dir, target_size)
+        all_paths.extend(paths)
+        all_arrays.append(arrays)
+        all_labels.extend([class_dir.name] * len(paths))
+        class_names.append(class_dir.name)
+ 
+    X = np.concatenate(all_arrays, axis=0).reshape(len(all_labels), -1)
+    y = np.array(all_labels)
+ 
+    smote = SMOTE(random_state=random_state)
+    X_res, y_res = smote.fit_resample(X, y)
+ 
+    # only the synthetic tail (everything past the original count) needs saving
+    n_original = len(y)
+    created = {name: 0 for name in class_names}
+ 
+    h, w = target_size[1], target_size[0]
+    for i in range(n_original, len(y_res)):
+        cls = y_res[i]
+        pixels = X_res[i].reshape(h, w, 3).astype(np.uint8)
+        img = Image.fromarray(pixels)
+ 
+        created[cls] += 1
+        out_path = originals_root / cls / f"synthetic_smote_{created[cls]}.png"
+        img.save(out_path)
+ 
+    print("SMOTE synthetic images created:", created)
+    print("Look at a handful of the generated images before training on them --")
+    print("if they look like blurry blends rather than plausible teeth, use")
+    print("balance_with_oversampling() instead.")
+    return created
