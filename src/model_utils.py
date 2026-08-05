@@ -1631,3 +1631,56 @@ def balance_with_smote(originals_root, target_size=(128, 128), random_state=42):
     print("if they look like blurry blends rather than plausible teeth, use")
     print("balance_with_oversampling() instead.")
     return created
+ 
+ 
+def balance_with_oversampling(originals_root, random_state=42):
+    """
+    Balances every class folder under originals_root to match the largest
+    class by copying randomly-picked EXISTING images from that same class
+    under new filenames (not repeating one image over and over unless the
+    class is small enough to need it).
+ 
+    Args:
+        originals_root: folder containing one subfolder per class, original
+            (non-augmented) images only
+        random_state: for reproducibility
+ 
+    Returns:
+        dict of class_name -> number of copies created
+    """
+    random.seed(random_state)
+    originals_root = Path(originals_root)
+ 
+    class_dirs = {d.name: d for d in originals_root.iterdir() if d.is_dir()}
+    counts = {name: len([p for p in d.iterdir() if p.is_file()]) for name, d in class_dirs.items()}
+    target_count = max(counts.values())
+    print("Current counts:", counts)
+    print("Target per class:", target_count)
+ 
+    created = {}
+    for name, class_dir in class_dirs.items():
+        images = [p for p in class_dir.iterdir() if p.is_file()]
+        needed = target_count - len(images)
+        created[name] = needed
+ 
+        if needed <= 0:
+            continue
+ 
+        # sample with replacement, spread across the whole class rather than
+        # looping the same handful of images -- shuffle first, then cycle
+        pool = images.copy()
+        random.shuffle(pool)
+        copy_i = 0
+        while needed > 0:
+            src = pool[copy_i % len(pool)]
+            copy_i += 1
+            dest = class_dir / f"{src.stem}_copy{copy_i}{src.suffix}"
+            shutil.copy2(src, dest)
+            needed -= 1
+ 
+    print("Copies created per class:", created)
+    return created
+ 
+ 
+
+ 
