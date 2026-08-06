@@ -1662,3 +1662,6 @@ class FocalLoss(nn.Module):
         return loss
 
 
+def denorm(imgs):
+    """Reverse normalization from [-1, 1] back to [0, 1] for display."""
+    return (imgs + 1) / 2
