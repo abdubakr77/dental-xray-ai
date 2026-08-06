@@ -142,3 +142,37 @@ def show_random_image(PATH, num_of_samples=16):
 
     plt.show()
 
+def show_curves(model_history,save_dir=os.getcwd()):
+    """
+    Plot Loss and Accuracy curves for train and validation splits.
+
+    Parameters
+    ----------
+    model_history : list of dicts — keys: train_loss, valid_loss, train_acc, valid_acc
+    """
+    train_loss = [x["train_loss"] for x in model_history]
+    valid_loss   = [x["valid_loss"]   for x in model_history]
+    train_acc  = [x["train_acc"]  for x in model_history]
+    valid_acc    = [x["valid_acc"]    for x in model_history]
+
+    _, ax = plt.subplots(1, 2, figsize=(14, 5))
+
+    ax[0].plot(train_loss, label="Train",      linewidth=2)
+    ax[0].plot(valid_loss,   label="Validation", linewidth=2, linestyle="--")
+    ax[0].set_title("Loss Over Epochs", fontsize=13, fontweight="bold")
+    ax[0].set_ylabel("Loss")
+    ax[0].set_xlabel("Epoch")
+    ax[0].legend()
+    ax[0].grid(alpha=0.3)
+
+    ax[1].plot(train_acc, label="Train",      linewidth=2)
+    ax[1].plot(valid_acc,   label="Validation", linewidth=2, linestyle="--")
+    ax[1].set_title("Accuracy Over Epochs", fontsize=13, fontweight="bold")
+    ax[1].set_ylabel("Accuracy")
+    ax[1].set_xlabel("Epoch")
+    ax[1].legend()
+    ax[1].grid(alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig(os.path.join(save_dir,'ACC_LOSS_Curves.png'), dpi=300, bbox_inches='tight')
+    plt.show()
