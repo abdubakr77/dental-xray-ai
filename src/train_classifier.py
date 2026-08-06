@@ -1,0 +1,149 @@
+import torch
+from tqdm import tqdm
+import os
+
+
+def train(model, train_dl, valid_dl, epochs, criterion, optimizer,
+          early_stopping_metric='loss', patience=10, scheduler=None,
+          device_name='cpu', save_dir=os.getcwd()):
+    
+    device = torch.device(device_name)
+    use_amp = device.type == "cuda"
+    scaler = torch.amp.GradScaler(device.type, enabled=use_amp) if use_amp else None
+
+    os.makedirs(save_dir, exist_ok=True)
+
+    history = []
+    best_epoch = 0
+    counter = 0
+
+    metric_name = early_stopping_metric.lower()
+    if metric_name in {"loss", "val_loss", "valid_loss"}:
+        best_metric = float("inf")
+        monitor_mode = "min"
+    elif metric_name in {"acc", "accuracy", "val_acc", "valid_acc"}:
+        best_metric = -float("inf")
+        monitor_mode = "max"
+    else:
+        raise ValueError(
+            f"Unsupported early_stopping_metric='{early_stopping_metric}'. "
+            "Use 'loss' or 'acc'/'accuracy'."
+        )
+
+    use_early_stopping = patience is not None and patience > 0
+
+    for epoch in range(epochs):
+        all_train_loss = []
+        all_train_acc = []
+
+        model.train()
+        for images, labels in tqdm(train_dl, desc=f"Epoch: {epoch + 1}"):
+            images = images.to(device)
+            labels = labels.to(device)
+            optimizer.zero_grad(set_to_none=True)
+
+            if use_amp:
+                with torch.autocast(device.type):
+                    outputs = model(images)
+                    loss = criterion(outputs, labels)
+
+                scaler.scale(loss).backward()
+                scaler.step(optimizer)
+                scaler.update()
+            else:
+                outputs = model(images)
+                loss = criterion(outputs, labels)
+                loss.backward()
+                optimizer.step()
+
+            _, preds = torch.max(outputs, dim=1)
+
+            all_train_loss.append(loss.item())
+            all_train_acc.append((preds == labels).float().mean().item())
+
+        train_loss = sum(all_train_loss) / len(all_train_loss)
+        train_acc = sum(all_train_acc) / len(all_train_acc)
+
+        all_val_loss = []
+        all_val_acc = []
+
+        model.eval()
+        with torch.no_grad():
+            for images, labels in valid_dl:
+                images = images.to(device)
+                labels = labels.to(device)
+
+                if use_amp:
+                    with torch.autocast(device.type):
+                        outputs = model(images)
+                        loss = criterion(outputs, labels)
+                else:
+                    outputs = model(images)
+                    loss = criterion(outputs, labels)
+
+                _, preds = torch.max(outputs, dim=1)
+
+                all_val_loss.append(loss.item())
+                all_val_acc.append((preds == labels).float().mean().item())
+
+        valid_loss = sum(all_val_loss) / len(all_val_loss)
+        valid_acc = sum(all_val_acc) / len(all_val_acc)
+
+        if metric_name in {"loss", "val_loss", "valid_loss"}:
+            current_metric = valid_loss
+        else:
+            current_metric = valid_acc
+
+        print(
+            f"Train Loss: {train_loss:.4f}, Valid Loss: {valid_loss:.4f} | "
+            f"Train Accuracy: {train_acc:.4f}, Valid Accuracy: {valid_acc:.4f}"
+        )
+
+        history.append({
+            "train_loss": train_loss,
+            "train_acc": train_acc,
+            "valid_loss": valid_loss,
+            "valid_acc": valid_acc,
+            "monitor_metric": current_metric,
+        })
+
+        if scheduler is not None:
+            if hasattr(scheduler, "step"):
+                if hasattr(torch.optim.lr_scheduler, "ReduceLROnPlateau") and isinstance(
+                    scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau
+                ):
+                    scheduler.step(current_metric)
+                else:
+                    scheduler.step()
+
+        if monitor_mode == "min":
+            improved = current_metric < best_metric
+        else:
+            improved = current_metric > best_metric
+
+        if improved:
+            best_metric = current_metric
+            best_epoch = epoch
+            counter = 0
+            torch.save(model.state_dict(), os.path.join(save_dir, "best.pt"))
+            print(f"  New best saved — {early_stopping_metric}: {current_metric:.4f}")
+        else:
+            if use_early_stopping:
+                counter += 1
+                print(f"  No improvement ({counter}/{patience})")
+                if counter >= patience:
+                    print("Early stopping triggered.")
+                    break
+            else:
+                print("  No improvement (early stopping disabled)")
+
+    torch.save(model.state_dict(), os.path.join(save_dir, "last.pt"))
+
+    best_path = os.path.join(save_dir, "best.pt")
+    if os.path.exists(best_path):
+        model.load_state_dict(torch.load(best_path, map_location=device))
+        print("Best Model Loaded Successfully!")
+    else:
+        print("No best model found, using last model state.")
+
+    return model, best_epoch
