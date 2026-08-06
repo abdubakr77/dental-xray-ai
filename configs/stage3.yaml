@@ -3,15 +3,14 @@ paths:
   original_json_path: ../Data/Raw/DENTEX CHALLENGE 2023/Training_data/quadrant-enumeration-disease/train_quadrant_enumeration_disease.json
   s3_main_path: ../Data/Processed/Stage 3 (Disease Classifier)
   runs_s3_output: ../Runs/Stage 3
+  data_yaml_path: ../Data/Processed/Stage 3 (Disease Classifier)/data.yaml
 
 model_args:
-  data: ../Data/Processed/Stage 3 (Disease Classifier)/data.yaml
-  image_size: 224
+  image_size: 256
   epochs: 100
-  batch_size: 32
+  batch_size: 64
   patience: 10
   lr: 0.001
-  lrf: 0.01
-  num_workers: 0
-  device: 'cuda'
+  num_workers: 4
+  device_name: 'cuda'
   save_dir: ../Runs/Stage 3
