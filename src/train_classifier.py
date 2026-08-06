@@ -31,6 +31,7 @@ def train(model, train_dl, valid_dl, epochs, criterion, optimizer,
         )
 
     use_early_stopping = patience is not None and patience > 0
+    if not use_early_stopping: print(" (early stopping disabled)")
 
     for epoch in range(epochs):
         all_train_loss = []
@@ -121,21 +122,20 @@ def train(model, train_dl, valid_dl, epochs, criterion, optimizer,
         else:
             improved = current_metric > best_metric
 
-        if improved:
-            best_metric = current_metric
-            best_epoch = epoch
-            counter = 0
-            torch.save(model.state_dict(), os.path.join(save_dir, "best.pt"))
-            print(f"  New best saved — {early_stopping_metric}: {current_metric:.4f}")
-        else:
-            if use_early_stopping:
+        if use_early_stopping:
+            if improved:
+                best_metric = current_metric
+                best_epoch = epoch
+                counter = 0
+                torch.save(model.state_dict(), os.path.join(save_dir, "best.pt"))
+                print(f"  New best saved — {early_stopping_metric}: {current_metric:.4f}")
+            else:
                 counter += 1
                 print(f"  No improvement ({counter}/{patience})")
                 if counter >= patience:
                     print("Early stopping triggered.")
                     break
-            else:
-                print("  No improvement (early stopping disabled)")
+            
 
     torch.save(model.state_dict(), os.path.join(save_dir, "last.pt"))
 
