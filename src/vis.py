@@ -3,6 +3,8 @@ import matplotlib.patches as patches
 import numpy as np
 import os
 from sklearn.utils import shuffle
+from sklearn.metrics import confusion_matrix, classification_report
+import seaborn as sns
 
 def show_image_boxes(df,images_path,target:list = None):
     if target and len(target) == 2:
@@ -176,3 +178,18 @@ def show_curves(model_history,save_dir=os.getcwd()):
     plt.tight_layout()
     plt.savefig(os.path.join(save_dir,'ACC_LOSS_Curves.png'), dpi=300, bbox_inches='tight')
     plt.show()
+
+def show_confusion_matrix(all_labels, all_preds, classes_names:list, save_dir=os.getcwd()):
+    """Print classification report and plot confusion matrix."""
+    cm = confusion_matrix(np.array(all_labels), np.array(all_preds))
+
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+                xticklabels=classes_names,
+                yticklabels=classes_names)
+    plt.title('Confusion Matrix', fontsize=14, fontweight='bold')
+    plt.tight_layout()
+    plt.savefig(os.path.join(save_dir,'confusion_matrix.png'), dpi=300, bbox_inches='tight')
+    plt.show()
+
+    print(classification_report(all_labels, all_preds, target_names=classes_names))
