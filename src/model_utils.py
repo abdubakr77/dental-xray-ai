@@ -1566,41 +1566,53 @@ def compare_best_vs_last(data_yaml,models_yaml=None, stage='quadrant', split_nam
 
  
  
-def balance_with_oversampling(originals_root, random_state=42):
+def balance_with_oversampling(originals_root, random_state=42, target_class=None, target_count=None):
     """
-    Balances every class folder under originals_root to match the largest
-    class by copying randomly-picked EXISTING images from that same class
-    under new filenames (not repeating one image over and over unless the
-    class is small enough to need it).
- 
+    Balances class folders under originals_root.
+
     Args:
         originals_root: folder containing one subfolder per class, original
             (non-augmented) images only
         random_state: for reproducibility
- 
+        target_class: optional class name to oversample. If provided, only this
+            class folder will be processed.
+        target_count: optional target number of images. If None, the function
+            uses the largest class count found under originals_root.
+
     Returns:
         dict of class_name -> number of copies created
     """
     random.seed(random_state)
     originals_root = Path(originals_root)
- 
+
     class_dirs = {d.name: d for d in originals_root.iterdir() if d.is_dir()}
+    if not class_dirs:
+        raise ValueError(f"No class folders found in {originals_root}")
+
     counts = {name: len([p for p in d.iterdir() if p.is_file()]) for name, d in class_dirs.items()}
-    target_count = max(counts.values())
+    if target_count is None:
+        target_count = max(counts.values())
+
+    if target_class is not None:
+        if target_class not in class_dirs:
+            raise ValueError(f"Class '{target_class}' not found in {originals_root}")
+        target_classes = [target_class]
+    else:
+        target_classes = list(class_dirs.keys())
+
     print("Current counts:", counts)
     print("Target per class:", target_count)
- 
+
     created = {}
-    for name, class_dir in class_dirs.items():
+    for name in target_classes:
+        class_dir = class_dirs[name]
         images = [p for p in class_dir.iterdir() if p.is_file()]
         needed = target_count - len(images)
         created[name] = needed
- 
+
         if needed <= 0:
             continue
- 
-        # sample with replacement, spread across the whole class rather than
-        # looping the same handful of images -- shuffle first, then cycle
+
         pool = images.copy()
         random.shuffle(pool)
         copy_i = 0
@@ -1610,7 +1622,7 @@ def balance_with_oversampling(originals_root, random_state=42):
             dest = class_dir / f"{src.stem}_copy{copy_i}{src.suffix}"
             shutil.copy2(src, dest)
             needed -= 1
- 
+
     print("Copies created per class:", created)
     return created
  
