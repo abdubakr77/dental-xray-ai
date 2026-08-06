@@ -1662,14 +1662,3 @@ class FocalLoss(nn.Module):
         return loss
 
 
-def show_all_images_counts(all_path: list):
-    """Count images per class for each split."""
-    all_images_counts = {}
-    for path in all_path:
-        labels = os.listdir(path)
-        img_counts = {}
-        for label_name in labels:
-            label_path = os.path.join(path, label_name)
-            img_counts[label_name] = len(os.listdir(label_path))
-        all_images_counts[path.split("\\")[-1]] = img_counts
-    return all_images_counts
