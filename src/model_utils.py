@@ -11,7 +11,8 @@ from itertools import combinations
 from pathlib import Path
 import shutil
 import random
-from PIL import Image
+import torch.nn as nn
+from torch import exp
 
 def draw_corner_box(img, x1, y1, x2, y2, label_name, confidence, color, length, thickness):
     """
@@ -1629,3 +1630,33 @@ def balance_with_oversampling(originals_root, random_state=42, target_class=None
  
 
  
+class FocalLoss(nn.Module):
+    """
+    Focal loss for multi-class classification. Down-weights easy, already-correct
+    predictions so the model focuses more on hard or minority-class examples,
+    useful here as an alternative to oversampling for class imbalance.
+
+    Args:
+        alpha: class weights (tensor of shape [num_classes]), or None for no weighting.
+               Give rare classes a higher value if you want extra emphasis on them.
+        gamma: focusing parameter. Higher gamma pushes the model harder toward hard examples.
+               2.0 is the common default.
+        reduction: 'mean', 'sum', or 'none'
+    """
+    def __init__(self, alpha=None, gamma=2.0, reduction='mean'):
+        super().__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.reduction = reduction
+
+    def forward(self, logits, targets):
+        ce_loss = nn.functional.cross_entropy(logits, targets, weight=self.alpha, reduction='none')
+        pt = exp(-ce_loss)  # probability the model assigned to the correct class
+        focal_term = (1 - pt) ** self.gamma
+        loss = focal_term * ce_loss
+
+        if self.reduction == 'mean':
+            return loss.mean()
+        elif self.reduction == 'sum':
+            return loss.sum()
+        return loss
