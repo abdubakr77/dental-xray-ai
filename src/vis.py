@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
 import os
+from sklearn.utils import shuffle
 
 def show_image_boxes(df,images_path,target:list = None):
     if target and len(target) == 2:
@@ -117,3 +118,27 @@ def show_all_images_counts(all_path: list):
             img_counts[label_name] = len(os.listdir(label_path))
         all_images_counts[path.split("\\")[-1]] = img_counts
     return all_images_counts
+
+def show_random_image(PATH, num_of_samples=16):
+    """Display a 4x4 grid of random samples per class side by side."""
+    labels = os.listdir(PATH)
+    fig = plt.figure(figsize=(15, 6))
+    outer = fig.add_gridspec(1, 2, wspace=0.2)
+
+    for j, label_name in enumerate(labels[:2]):
+        label_path = os.path.join(PATH, label_name)
+        images = shuffle(os.listdir(label_path))[:num_of_samples]
+        inner = outer[j].subgridspec(4, 4)
+
+        ax_title = fig.add_subplot(outer[j])
+        ax_title.set_title(label_name, fontsize=14)
+        ax_title.axis("off")
+
+        for i, img_name in enumerate(images):
+            r, c = divmod(i, 4)
+            ax = fig.add_subplot(inner[r, c])
+            ax.imshow(plt.imread(os.path.join(label_path, img_name)), cmap="gray")
+            ax.axis("off")
+
+    plt.show()
+
