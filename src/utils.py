@@ -457,6 +457,31 @@ def augment_and_save(image, bboxes, class_labels, n_copies, base_filename, outpu
                 cv2.imwrite(os.path.join(output_images, f"{new_filename}.png"), new_img)
 
 
+
+def suggest_n_copies(data_yaml):
+    """
+    Counts how many images each class folder currently has and suggests how many
+    augmented copies per image would bring every class close to the largest class.
+
+    Args:
+        data_yaml: dict with a 'train' key pointing to the classifier's train folder
+
+    Returns:
+        counts: dict of class folder name -> current image count
+        suggestions: dict of class folder name -> suggested n_copies
+    """
+    train_path = data_yaml['train']
+    counts = {fol: len(os.listdir(os.path.join(train_path, fol))) for fol in os.listdir(train_path)}
+    max_count = max(counts.values())
+
+    suggestions = {}
+    for fol, count in counts.items():
+        suggestions[fol] = max(0, round(max_count / count) - 1) if count else 0
+
+    return counts, suggestions
+
+
+
 def apply_smart_aug(data_yaml, aug_config, is_disease=False, apply_debug=False,
                      n_copies_per_class=None, clear_existing=False):
     """
