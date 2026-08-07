@@ -5,12 +5,33 @@ paths:
   runs_s3_output: ../Runs/Stage 3
   data_yaml_path: ../Data/Processed/Stage 3 (Disease Classifier)/data.yaml
 
-model_args:
-  image_size: 256
-  epochs: 100
-  batch_size: 64
-  patience: 10
-  lr: 0.001
-  num_workers: 4
-  device_name: 'cuda'
-  save_dir: ../Runs/Stage 3
+healthy_unhealthy:
+  model_args:
+    image_size: 256
+    epochs: 50
+    batch_size: 64
+    patience: 10
+    lr: 0.001
+    num_workers: 4
+    device_name: 'cuda'
+    save_dir: ../Runs/Stage 3/healthy_unhealthy
+disease_classifier:
+  model_args:
+    image_size: 256
+    epochs: 50
+    batch_size: 64
+    patience: 10
+    lr: 0.001
+    num_workers: 4
+    device_name: 'cuda'
+    save_dir: ../Runs/Stage 3/disease_classifier
+caries_or_deepcaries:
+  model_args:
+    image_size: 256
+    epochs: 50
+    batch_size: 64
+    patience: 10
+    lr: 0.001
+    num_workers: 4
+    device_name: 'cuda'
+    save_dir: ../Runs/Stage 3/caries_or_deepcaries
