@@ -1,6 +1,23 @@
-train: '../Data/Processed/Stage 3 (Disease Classifier)/train/'
-val: '../Data/Processed/Stage 3 (Disease Classifier)/valid/'
-test: '../Data/Processed/Stage 3 (Disease Classifier)/test/'
+healthy_unhealthy:
+  train: '../Data/Processed/Stage 3 (Disease Classifier)/healthy or un-healthy classifier/train/'
+  val: '../Data/Processed/Stage 3 (Disease Classifier)/healthy or un-healthy classifier/valid/'
+  test: '../Data/Processed/Stage 3 (Disease Classifier)/healthy or un-healthy classifier/test/'
 
-nc: 5
-names: ['Impacted','Caries','Periapical','Deep Caries','No Disease']
+  nc: 2
+  names: ['Disease Found','Healthy']
+
+disease_classifier:
+  train: '../Data/Processed/Stage 3 (Disease Classifier)/disease classifier/train/'
+  val: '../Data/Processed/Stage 3 (Disease Classifier)/disease classifier/valid/'
+  test: '../Data/Processed/Stage 3 (Disease Classifier)/disease classifier/test/'
+
+  nc: 3
+  names: ['Impacted','Caries','Periapical']
+
+caries_or_deepcaries:
+  train: '../Data/Processed/Stage 3 (Disease Classifier)/caries or deep_caries classifier/train/'
+  val: '../Data/Processed/Stage 3 (Disease Classifier)/caries or deep_caries classifier/valid/'
+  test: '../Data/Processed/Stage 3 (Disease Classifier)/caries or deep_caries classifier/test/'
+
+  nc: 2
+  names: ['Caries','Deep Caries']
