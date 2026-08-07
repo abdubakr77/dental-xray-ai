@@ -237,3 +237,6 @@ Data/Processed/Stage 2 Continued (Healthy & Disease Enumeration Detection)/valid
 Data/Processed/Stage 3 (Disease Classifier)/test
 Data/Processed/Stage 3 (Disease Classifier)/train
 Data/Processed/Stage 3 (Disease Classifier)/valid
+
+Data/Processed/Stage 3 (Disease Classifier)/caries or deep_caries classifier
+Data/Processed/Stage 3 (Disease Classifier)/healthy or un-healthy classifier
