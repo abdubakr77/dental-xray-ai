@@ -346,28 +346,30 @@ def export_classifier_crops(images_path, output_root, class_to_folder,
     return counts
 
 
-def read_image_and_label(filename_no_ext,data_yaml):
-    
+def read_image_and_label(filename_no_ext, data_yaml):
+
     img_path = os.path.join(data_yaml['train'], filename_no_ext + ".png")
     image = cv2.imread(img_path)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    
-    if 'Caries' in data_yaml['names']:
+
+    labels_path = data_yaml['train'].replace('images', 'labels')
+
+    if not os.path.isdir(labels_path):
         return image
-    
-    label_path = os.path.join(data_yaml['train'].replace('images','labels'), filename_no_ext + ".txt")
+
+    label_path = os.path.join(labels_path, filename_no_ext + ".txt")
     bboxes = []
     class_labels = []
-    
+
     with open(label_path, 'r') as f:
         for line in f.readlines():
             values = line.split()
             cls_id = int(float(values[0]))
             cx, cy, w, h = map(float, values[1:])
-            
+
             bboxes.append([cx, cy, w, h])
             class_labels.append(cls_id)
-    
+
     return image, bboxes, class_labels
 
 
