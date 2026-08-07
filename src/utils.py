@@ -2,7 +2,6 @@ import pandas as pd
 from sklearn.preprocessing import MultiLabelBinarizer
 import os
 import shutil
-from time import sleep
 from tqdm import tqdm
 import cv2
 import sys
@@ -458,8 +457,23 @@ def augment_and_save(image, bboxes, class_labels, n_copies, base_filename, outpu
                 cv2.imwrite(os.path.join(output_images, f"{new_filename}.png"), new_img)
 
 
-def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
+def apply_smart_aug(data_yaml, aug_config, is_disease=False, apply_debug=False,
+                     n_copies_per_class=None, clear_existing=False):
+    """
+    Runs the augmentation pipeline and saves augmented copies back into the dataset.
 
+    Args:
+        data_yaml: dict with a 'train' key
+        aug_config: augmentation parameters, passed to build_transform
+        is_disease: True for classifier-style folders (one subfolder per class)
+        apply_debug: if True, just previews 3 augmented copies of one random image
+        n_copies_per_class: dict mapping class folder name to how many copies to
+                             generate per image, only used when is_disease=True.
+                             Get a starting point from suggest_n_copies().
+        clear_existing: if True and augmented images already exist, clears them first
+                         instead of asking. Set this explicitly, since an interactive
+                         prompt breaks on platforms without a console, like Kaggle.
+    """
     main_images_path = data_yaml['train']
 
     if is_disease:
@@ -476,73 +490,44 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
         labels_path = main_images_path.replace('images', 'labels')
         all_files_no_ext = [item.split('.')[0] for item in os.listdir(main_images_path)]
         aug_exists = any('aug' in f for f in all_files_no_ext)
-        
 
     if aug_exists and not apply_debug:
-        print("Warning: Found existing augmented images in this dataset.")
-        confirm = input("Do you want to clear them now using clear_dataset_images()? - (y or n): ").lower().strip()
-        if confirm == 'y':
+        if clear_existing:
             clear_dataset_images(data_yaml, is_disease=is_disease, target='augmented', confirm_prompt=False)
         else:
-            print("Skipped clearing. Proceeding with existing augmented images still in place.")
+            print("Warning: Found existing augmented images. Pass clear_existing=True to clear them, "
+                  "otherwise new copies get added on top of the existing ones.")
 
-
-
-    # Debugging HERE
     if apply_debug:
-        
         if is_disease:
             rand_class = np.random.choice(list(disease_images_per_class.keys()))
             rand_fname = np.random.choice(disease_images_per_class[rand_class])
-            image = read_image_and_label(os.path.join(rand_class,rand_fname),data_yaml)
-            augment_and_save(image=image,
-                            bboxes=None,
-                            class_labels=None,
-                            n_copies=3,
-                            base_filename=rand_fname,
-                            output_images=None,
-                            output_labels=None,
-                            aug_config=aug_config,
-                            debugging=True,is_disease=True)
+            image = read_image_and_label(os.path.join(rand_class, rand_fname), data_yaml)
+            augment_and_save(image=image, bboxes=None, class_labels=None, n_copies=3,
+                              base_filename=rand_fname, output_images=None, output_labels=None,
+                              aug_config=aug_config, debugging=True, is_disease=True)
         else:
             rand_fname = np.random.choice(all_files_no_ext)
-            image,bboxes,class_labels = read_image_and_label(rand_fname,data_yaml)
-            augment_and_save(image=image,
-                            bboxes=bboxes,
-                            class_labels=class_labels,
-                            n_copies=3,
-                            base_filename=rand_fname,
-                            output_images=None,
-                            output_labels=None,
-                            aug_config=aug_config,
-                            debugging=True)
-            
+            image, bboxes, class_labels = read_image_and_label(rand_fname, data_yaml)
+            augment_and_save(image=image, bboxes=bboxes, class_labels=class_labels, n_copies=3,
+                              base_filename=rand_fname, output_images=None, output_labels=None,
+                              aug_config=aug_config, debugging=True)
         return
 
-
     if is_disease:
+        if n_copies_per_class is None:
+            raise ValueError("n_copies_per_class is required when is_disease=True. "
+                              "Use suggest_n_copies(data_yaml) to get a starting point.")
+
         for fol_class in list(disease_images_per_class.keys()):
-            class_label = int(fol_class[0])
-            if class_label == 4:
+            n = n_copies_per_class.get(fol_class, 0)
+            if n <= 0:
                 continue
-
-            for fname in tqdm(disease_images_per_class[fol_class],
-                               desc=f'Augmenting {diagnosis_map[int(fol_class[0])]} Images Now...'):
+            for fname in tqdm(disease_images_per_class[fol_class], desc=f'Augmenting {fol_class} Images Now...'):
                 image = read_image_and_label(os.path.join(fol_class, fname), data_yaml)
-
-                if class_label == 2:
-                    n = 15
-                elif class_label == 0 or class_label == 3:
-                    n = 4
-                else:
-                    if np.random.choice([0, 1]):
-                        continue
-                    n = 1
-
                 augment_and_save(image=image, bboxes=None, class_labels=None, n_copies=n,
                                   base_filename=fname, output_images=os.path.join(main_images_path, fol_class),
                                   output_labels=None, aug_config=aug_config, is_disease=True)
-                    
     else:
         for fname in tqdm(all_files_no_ext, desc='Augmenting Images Now...'):
             image, bboxes, class_labels = read_image_and_label(fname, data_yaml)
@@ -554,7 +539,7 @@ def apply_smart_aug(data_yaml,aug_config, is_disease=False, apply_debug=False):
                     n = 6
                 else:
                     continue
-            elif 'caries' in data_yaml['names']:
+            elif 'Caries' in data_yaml['names']:
                 if 2 in class_labels:
                     n = 10
                 elif 0 in class_labels or 3 in class_labels:
