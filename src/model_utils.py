@@ -1665,3 +1665,34 @@ class FocalLoss(nn.Module):
 def denorm(imgs):
     """Reverse normalization from [-1, 1] back to [0, 1] for display."""
     return (imgs + 1) / 2
+
+
+def get_transforms(image_size, apply_on_train=False):
+    from torchvision.transforms import v2 ; from torch import float32
+
+    """
+    Build a transform pipeline for training or validation/test.
+
+    Args:
+        size: target square image size in pixels
+        apply_on_train: if True, adds augmentation steps before normalization
+
+    Returns:
+        v2.Compose transform pipeline
+    """
+    base = [
+        v2.Resize((image_size, image_size)),
+        v2.ToImage(),
+        v2.ToDtype(float32, scale=True),
+    ]
+
+    augmentation = [
+        v2.TrivialAugmentWide(),
+    ]
+
+    # ImageNet mean/std normalization (required for pretrained models)
+    tail = [v2.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]
+
+    if apply_on_train:
+        return v2.Compose(base + augmentation + tail)
+    return v2.Compose(base + tail)
