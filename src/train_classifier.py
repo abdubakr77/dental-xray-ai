@@ -8,6 +8,11 @@ def train(model, train_dl, valid_dl, epochs, criterion, optimizer,
           device_name='cpu', save_dir=os.getcwd()):
     
     device = torch.device(device_name)
+    model = model.to(device)
+    
+    if torch.cuda.device_count() > 1:
+        model = torch.nn.DataParallel(model, device_ids=[0, 1])
+
     use_amp = device.type == "cuda"
     scaler = torch.amp.GradScaler(device.type, enabled=use_amp) if use_amp else None
 
