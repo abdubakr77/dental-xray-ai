@@ -1663,8 +1663,23 @@ class FocalLoss(nn.Module):
 
 
 def denorm(imgs):
-    """Reverse normalization from [-1, 1] back to [0, 1] for display."""
-    return (imgs + 1) / 2
+    from torch import tensor
+    """
+    Reverse ImageNet normalization so images can be displayed correctly.
+
+    Args:
+        imgs: normalized tensor of shape (B, C, H, W) or (C, H, W)
+
+    Returns:
+        tensor in [0, 1] range with same shape as input
+    """
+    mean = tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1).to(imgs.device)
+    std  = tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1).to(imgs.device)
+
+    if imgs.dim() == 3:
+        imgs = imgs.unsqueeze(0)
+
+    return imgs * std + mean
 
 
 def get_transforms(image_size, apply_on_train=False):
