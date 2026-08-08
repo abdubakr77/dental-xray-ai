@@ -1,10 +1,12 @@
 import torch
 from tqdm import tqdm
 import os
-
+from torchvision.transforms import v2
+import torch.nn.functional as F
 
 def train(model, train_dl, valid_dl, epochs, criterion, optimizer,
           early_stopping_metric='loss', patience=10, scheduler=None,
+          enable_cutmix=False, enable_mixup=None,
           device_name='cpu', save_dir=os.getcwd()):
     
     device = torch.device(device_name)
@@ -38,6 +40,22 @@ def train(model, train_dl, valid_dl, epochs, criterion, optimizer,
     use_early_stopping = patience is not None and patience > 0
     if not use_early_stopping: print(" (early stopping disabled)")
 
+    apply_cutmix_or_mixup = None
+    num_classes = len(train_dl.dataset.classes)
+    if enable_cutmix and enable_mixup:
+        cutmix = v2.CutMix(num_classes=num_classes)
+        mixup = v2.MixUp(num_classes=num_classes)
+        apply_cutmix_or_mixup = v2.RandomChoice([cutmix, mixup])
+
+    elif enable_cutmix:
+        apply_cutmix_or_mixup = v2.CutMix(num_classes=num_classes)
+
+    elif enable_mixup:
+        apply_cutmix_or_mixup = v2.MixUp(num_classes=num_classes)
+
+    if apply_cutmix_or_mixup is not None:
+        criterion = F.cross_entropy
+
     for epoch in range(epochs):
         all_train_loss = []
         all_train_acc = []
@@ -46,6 +64,10 @@ def train(model, train_dl, valid_dl, epochs, criterion, optimizer,
         for images, labels in tqdm(train_dl, desc=f"Epoch: {epoch + 1}"):
             images = images.to(device)
             labels = labels.to(device)
+
+            if apply_cutmix_or_mixup is not None:
+                images, labels = apply_cutmix_or_mixup(images, labels)
+
             optimizer.zero_grad(set_to_none=True)
 
             if use_amp:
@@ -64,8 +86,10 @@ def train(model, train_dl, valid_dl, epochs, criterion, optimizer,
 
             _, preds = torch.max(outputs, dim=1)
 
+            hard_labels = labels.argmax(dim=1) if labels.ndim > 1 else labels
+
             all_train_loss.append(loss.item())
-            all_train_acc.append((preds == labels).float().mean().item())
+            all_train_acc.append((preds == hard_labels).float().mean().item())
 
         train_loss = sum(all_train_loss) / len(all_train_loss)
         train_acc = sum(all_train_acc) / len(all_train_acc)
@@ -89,8 +113,10 @@ def train(model, train_dl, valid_dl, epochs, criterion, optimizer,
 
                 _, preds = torch.max(outputs, dim=1)
 
-                all_val_loss.append(loss.item())
-                all_val_acc.append((preds == labels).float().mean().item())
+            hard_labels = labels.argmax(dim=1) if labels.ndim > 1 else labels
+
+            all_val_loss.append(loss.item())
+            all_val_acc.append((preds == hard_labels).float().mean().item())
 
         valid_loss = sum(all_val_loss) / len(all_val_loss)
         valid_acc = sum(all_val_acc) / len(all_val_acc)
@@ -133,7 +159,7 @@ def train(model, train_dl, valid_dl, epochs, criterion, optimizer,
                 best_epoch = epoch
                 counter = 0
                 torch.save(model.state_dict(), os.path.join(save_dir, "best.pt"))
-                print(f"  New best saved — {early_stopping_metric}: {current_metric:.4f}")
+                print(f"  New best saved - {early_stopping_metric}: {current_metric:.4f}")
             else:
                 counter += 1
                 print(f"  No improvement ({counter}/{patience})")
