@@ -2,6 +2,7 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import torch
 from src.utils import _iou_xyxy,_xywh_norm_to_xyxy_px
 from src.vis import visualize_augmentation
 from tqdm import tqdm
@@ -1731,7 +1732,7 @@ def build_swin_model(
     from torchvision.models import swin_v2_s,Swin_V2_S_Weights
     from torch.optim import AdamW,lr_scheduler
     from torch import nn
-    
+
     model = swin_v2_s(Swin_V2_S_Weights.DEFAULT)
 
     in_features = model.head.in_features
@@ -1775,3 +1776,75 @@ def build_swin_model(
         scheduler = None
 
     return model, optimizer, scheduler
+
+
+def predict(model, dataloader, device=None, class_names=None, num_samples=20, show_plot=True, save_plot_path=os.getcwd(), figsize=(12, 10)):
+    """Run inference on a dataloader and optionally visualize sample predictions."""
+    if device is None:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    model = model.to(device)
+    model.eval()
+
+    all_labels, all_preds = [], []
+
+    with torch.no_grad():
+        for imgs, labels in dataloader:
+            imgs = imgs.to(device, non_blocking=True)
+            labels = labels.to(device, non_blocking=True)
+
+            outputs = model(imgs)
+            _, preds = torch.max(outputs, dim=1)
+
+            all_labels.extend(labels.detach().cpu().tolist())
+            all_preds.extend(preds.detach().cpu().tolist())
+
+    all_labels = np.array(all_labels, dtype=int)
+    all_preds = np.array(all_preds, dtype=int)
+
+    if show_plot:
+        dataset = getattr(dataloader, "dataset", None)
+        if dataset is None:
+            raise ValueError("dataloader must provide a dataset attribute for plotting")
+
+        if class_names is None:
+            class_names = getattr(dataset, "classes", None)
+        if class_names is None:
+            class_names = [str(i) for i in range(max(len(np.unique(all_labels)), 2))]
+
+        sample_size = min(num_samples, len(dataset))
+        sample_indices = np.random.choice(len(dataset), size=sample_size, replace=False)
+
+        n_cols = 5
+        n_rows = int(np.ceil(sample_size / n_cols))
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=figsize)
+        axes = np.array(axes).flatten()
+
+        for ax, idx in zip(axes, sample_indices):
+            img, true_label = dataset[idx]
+            img = denorm(img).permute(1, 2, 0).cpu().numpy()
+            img = np.clip(img, 0, 1)
+
+            true_idx = int(all_labels[idx])
+            pred_idx = int(all_preds[idx])
+            correct = pred_idx == true_idx
+
+            ax.imshow(img)
+            ax.set_title(
+                f"True: {class_names[true_idx]}\nPred: {class_names[pred_idx]}",
+                color="green" if correct else "red",
+                fontsize=9,
+            )
+            ax.axis("off")
+
+        for ax in axes[sample_size:]:
+            ax.axis("off")
+
+        plt.suptitle("Test Set Predictions", fontsize=14, y=1.01)
+        plt.tight_layout()
+
+        plt.savefig(os.path.join(save_plot_path,'test_set_predicted.png'), dpi=300, bbox_inches='tight')
+
+        plt.show()
+
+    return all_labels, all_preds
