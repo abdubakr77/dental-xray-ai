@@ -399,7 +399,7 @@ def build_transform(img_h, img_w, config, is_disease=False):
     else:
         return A.Compose([
             A.HorizontalFlip(p=config['hflip_p']),
-            A.Rotate(limit=config['rotate_limit'], p=config['rotate_p']),
+            A.Rotate(limit=config['rotate_limit'], p=config['rotate_p'],border_mode=cv2.BORDER_REFLECT_101),
             A.RandomBrightnessContrast(
                 brightness_limit=config.get('brightness_limit', 0.1),
                 contrast_limit=config.get('contrast_limit', 0.1),
