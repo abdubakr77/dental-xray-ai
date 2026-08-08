@@ -1711,3 +1711,67 @@ def get_transforms(image_size, apply_on_train=False):
     if apply_on_train:
         return v2.Compose(base + augmentation + tail)
     return v2.Compose(base + tail)
+
+
+def build_swin_model(
+    num_classes,
+    lr=1e-4,
+    epochs=10,
+    freeze_backbone=True,
+    scheduler_type='cosine',
+    unfreeze_layers=None,
+    dropout=0.0,
+    steps_per_epoch=None,):
+    """
+    Build a simple Swin Transformer classifier with optional freezing, layer unfreezing, dropout, and scheduler.
+    If you want to unfreeze specific layers by index, use names like:
+    unfreeze_layers=['features.0', 'features.1', 'norm'] (Swin Small Model have 7 featuers layers)
+    This will unfreeze any parameter names containing those strings.
+    """
+    from torchvision.models import swin_v2_s,Swin_V2_S_Weights
+    from torch.optim import AdamW,lr_scheduler
+    from torch import nn
+    
+    model = swin_v2_s(Swin_V2_S_Weights.DEFAULT)
+
+    in_features = model.head.in_features
+    if dropout > 0:
+        model.head = nn.Sequential(
+            nn.Dropout(dropout),
+            nn.Linear(in_features, num_classes)
+        )
+    else:
+        model.head = nn.Linear(in_features, num_classes)
+
+    if freeze_backbone:
+        for param in model.parameters():
+            param.requires_grad = False
+        for param in model.head.parameters():
+            param.requires_grad = True
+
+    if unfreeze_layers:
+        for name, param in model.named_parameters():
+            if any(layer_name in name for layer_name in unfreeze_layers):
+                param.requires_grad = True
+
+    optimizer = AdamW(model.parameters(), lr=lr)
+
+    if scheduler_type in {'cosine', 'cosineannealing'}:
+        scheduler = lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-5)
+    elif scheduler_type in {'step', 'steplr'}:
+        scheduler = lr_scheduler.StepLR(optimizer, step_size=max(1, epochs // 3), gamma=0.1)
+    elif scheduler_type in {'reduce_on_plateau', 'reduceLROnPlateau'}:
+        scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=1)
+    elif scheduler_type in {'one_cycle', 'on_cycle'}:
+        if steps_per_epoch is None:
+            steps_per_epoch = 1
+        scheduler = lr_scheduler.OneCycleLR(
+            optimizer,
+            max_lr=lr,
+            steps_per_epoch=steps_per_epoch,
+            epochs=epochs
+        )
+    else:
+        scheduler = None
+
+    return model, optimizer, scheduler
