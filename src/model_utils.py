@@ -1703,7 +1703,8 @@ def get_transforms(image_size, apply_on_train=False):
     ]
 
     augmentation = [
-        v2.TrivialAugmentWide(),
+        v2.RandomAutocontrast(p=1.0),
+        v2.RandomEqualize(p=1.0),
     ]
 
     # ImageNet mean/std normalization (required for pretrained models)

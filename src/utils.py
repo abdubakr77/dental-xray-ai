@@ -409,7 +409,7 @@ def build_transform(img_h, img_w, config, is_disease=False):
             A.RandomScale(scale_limit=config['zoom_scale'], p=config['zoom_p']),
             A.Blur(blur_limit=config.get('blur_var', (3, 5)), p=config.get('blur_p', 0.15)),
             A.RandomGamma(gamma_limit=config.get('gamma_limit', (90, 110)), p=config.get('gamma_p', 0.3)),
-            A.GaussNoise(std_range=config.get('noise_std_range', (0.02, 0.08)), p=config.get('noise_p', 0.2)),
+            A.GaussNoise(std_range=config.get('noise_std_range', (0.02, 0.04)), p=config.get('noise_p', 0.2)),
             A.Sharpen(alpha_range=config.get('sharpen_alpha', (0.1, 0.3)),
                     lightness_range=config.get('sharpen_lightness', (0.8, 1.1)), p=config.get('sharpen_p', 0.2)),
             A.GridDistortion(num_steps=config.get('grid_distort_steps', 3),
