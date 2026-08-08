@@ -346,7 +346,7 @@ def export_classifier_crops(images_path, output_root, class_to_folder,
     return counts
 
 
-def read_image_and_label(filename_no_ext, data_yaml):
+def read_image_and_label(filename_no_ext, data_yaml,is_disease=False):
 
     img_path = os.path.join(data_yaml['train'], filename_no_ext + ".png")
     image = cv2.imread(img_path)
@@ -354,7 +354,7 @@ def read_image_and_label(filename_no_ext, data_yaml):
 
     labels_path = data_yaml['train'].replace('images', 'labels')
 
-    if not os.path.isdir(labels_path):
+    if is_disease:
         return image
 
     label_path = os.path.join(labels_path, filename_no_ext + ".txt")
@@ -534,7 +534,7 @@ def apply_smart_aug(data_yaml, aug_config, is_disease=False, apply_debug=False,
         if is_disease:
             rand_class = np.random.choice(list(disease_images_per_class.keys()))
             rand_fname = np.random.choice(disease_images_per_class[rand_class])
-            image = read_image_and_label(os.path.join(rand_class, rand_fname), data_yaml)
+            image = read_image_and_label(os.path.join(rand_class, rand_fname), data_yaml,is_disease=True)
             augment_and_save(image=image, bboxes=None, class_labels=None, n_copies=3,
                               base_filename=rand_fname, output_images=None, output_labels=None,
                               aug_config=aug_config, debugging=True, is_disease=True)
@@ -556,7 +556,7 @@ def apply_smart_aug(data_yaml, aug_config, is_disease=False, apply_debug=False,
             if n <= 0:
                 continue
             for fname in tqdm(disease_images_per_class[fol_class], desc=f'Augmenting {fol_class} Images Now...'):
-                image = read_image_and_label(os.path.join(fol_class, fname), data_yaml)
+                image = read_image_and_label(os.path.join(fol_class, fname), data_yaml,is_disease=True)
                 augment_and_save(image=image, bboxes=None, class_labels=None, n_copies=n,
                                   base_filename=fname, output_images=os.path.join(main_images_path, fol_class),
                                   output_labels=None, aug_config=aug_config, is_disease=True)
