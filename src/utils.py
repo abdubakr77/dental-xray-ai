@@ -400,20 +400,10 @@ def build_transform(img_h, img_w, config, is_disease=False):
         return A.Compose([
             A.HorizontalFlip(p=config['hflip_p']),
             A.Rotate(limit=config['rotate_limit'], p=config['rotate_p'],border_mode=cv2.BORDER_REFLECT_101),
-            A.RandomBrightnessContrast(
-                brightness_limit=config.get('brightness_limit', 0.1),
-                contrast_limit=config.get('contrast_limit', 0.1),
-                p=config.get('brightness_contrast_p', 0.35)
-            ),
             A.CLAHE(clip_limit=config.get('clahe_clip_limit', 2.0), p=config.get('clahe_p', 0.5)),
-            A.RandomScale(scale_limit=config['zoom_scale'], p=config['zoom_p']),
             A.Blur(blur_limit=config.get('blur_var', (3, 5)), p=config.get('blur_p', 0.15)),
-            A.RandomGamma(gamma_limit=config.get('gamma_limit', (90, 110)), p=config.get('gamma_p', 0.3)),
-            A.GaussNoise(std_range=config.get('noise_std_range', (0.02, 0.04)), p=config.get('noise_p', 0.2)),
             A.Sharpen(alpha_range=config.get('sharpen_alpha', (0.1, 0.3)),
                     lightness_range=config.get('sharpen_lightness', (0.8, 1.1)), p=config.get('sharpen_p', 0.2)),
-            A.GridDistortion(num_steps=config.get('grid_distort_steps', 3),
-                            distort_limit=config.get('grid_distort_limit', 0.05), p=config.get('grid_distort_p', 0.15)),
         ])
 
 
