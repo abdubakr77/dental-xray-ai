@@ -1783,8 +1783,23 @@ def build_swin_model(
     return model, optimizer, scheduler
 
 
-def predict(model, dataloader, device=None, class_names=None, num_samples=20, show_plot=True, save_plot_path=os.getcwd(), figsize=(12, 10)):
-    """Run inference on a dataloader and optionally visualize sample predictions."""
+def predict(model, dataloader, device, class_names,disease_class_idx=None, threshold=None,
+             show_plot=False, num_samples=20, save_plot_path=os.getcwd(), figsize=(12, 10)):
+    """
+    Runs the model over a dataloader and returns true/predicted labels.
+
+    Args:
+        model, dataloader, device, class_names: as before
+        disease_class_idx: index of the "disease" class in class_names,
+                            required if threshold is set
+        threshold: if set, classifies as disease_class_idx whenever its
+                   probability exceeds this value, instead of using argmax.
+                   Lower than 0.5 favors catching more disease cases.
+
+    Returns:
+        all_labels, all_preds
+    """
+
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -1794,18 +1809,21 @@ def predict(model, dataloader, device=None, class_names=None, num_samples=20, sh
     all_labels, all_preds = [], []
 
     with torch.no_grad():
-        for imgs, labels in dataloader:
-            imgs = imgs.to(device, non_blocking=True)
-            labels = labels.to(device, non_blocking=True)
+        for images, labels in dataloader:
+            images = images.to(device)
+            outputs = model(images)
 
-            outputs = model(imgs)
-            _, preds = torch.max(outputs, dim=1)
+            if threshold is not None:
+                probs = torch.softmax(outputs, dim=1)
+                disease_prob = probs[:, disease_class_idx]
+                preds = torch.where(disease_prob > threshold,
+                                     torch.tensor(disease_class_idx, device=device),
+                                     torch.tensor(1 - disease_class_idx, device=device))
+            else:
+                _, preds = torch.max(outputs, dim=1)
 
-            all_labels.extend(labels.detach().cpu().tolist())
-            all_preds.extend(preds.detach().cpu().tolist())
-
-    all_labels = np.array(all_labels, dtype=int)
-    all_preds = np.array(all_preds, dtype=int)
+            all_labels.extend(labels.numpy())
+            all_preds.extend(preds.cpu().numpy())
 
     if show_plot:
         dataset = getattr(dataloader, "dataset", None)
