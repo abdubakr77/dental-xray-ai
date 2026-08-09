@@ -7,6 +7,12 @@ enumeration_detection_model:
 enumeration_continued_detection_model:
   best: ../Runs/Stage 2 Continued/weights/best.pt
   last: ../Runs/Stage 2 Continued/weights/last.pt
+healthy_unhealthy_model:
+  best: ../Runs/Stage 3/Healthy & Un-Healthy Classifier/weights/best.pt
+  last: ../Runs/Stage 3/Healthy & Un-Healthy Classifier/weights/last.pt
 disease_classification_model:
-  best: ../Runs/Stage 3/weights/best.pt
-  last: ../Runs/Stage 3/weights/last.pt
+  best: ../Runs/Stage 3/Disease Classifier/weights/best.pt
+  last: ../Runs/Stage 3/Disease Classifier/weights/last.pt
+caries_deepcaries_model:
+  best: ../Runs/Stage 3/Caries & Deep Caries Classifier/weights/best.pt
+  last: ../Runs/Stage 3/Caries & Deep Caries Classifier/weights/last.pt
