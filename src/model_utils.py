@@ -1674,14 +1674,17 @@ def denorm(imgs):
     Returns:
         tensor in [0, 1] range with same shape as input
     """
-    mean = tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1).to(imgs.device)
-    std  = tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1).to(imgs.device)
-
     if imgs.dim() == 3:
-        imgs = imgs.unsqueeze(0)
+        mean = tensor([0.485, 0.456, 0.406]).view(3, 1, 1).to(imgs.device)
+        std = tensor([0.229, 0.224, 0.225]).view(3, 1, 1).to(imgs.device)
+        return imgs * std + mean
 
-    return imgs * std + mean
+    if imgs.dim() == 4:
+        mean = tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1).to(imgs.device)
+        std = tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1).to(imgs.device)
+        return imgs * std + mean
 
+    raise ValueError(f"denorm expects 3D or 4D tensor, got shape {tuple(imgs.shape)}")
 
 def get_transforms(image_size, apply_on_train=False):
     from torchvision.transforms import v2 ; from torch import float32
@@ -1703,8 +1706,8 @@ def get_transforms(image_size, apply_on_train=False):
     ]
 
     augmentation = [
-        v2.RandomAutocontrast(p=1.0),
-        v2.RandomEqualize(p=1.0),
+        v2.RandomAutocontrast(p=0.5),
+        v2.RandomEqualize(p=0.5),
     ]
 
     # ImageNet mean/std normalization (required for pretrained models)
@@ -1717,11 +1720,12 @@ def get_transforms(image_size, apply_on_train=False):
 
 def build_swin_model(
     num_classes,
-    lr=1e-4,
+    lr=1e-3,
+    weight_decay=0.0001,
     epochs=10,
     freeze_backbone=True,
-    scheduler_type='cosine',
     unfreeze_layers=None,
+    scheduler_type='cosine',
     dropout=0.0,
     steps_per_epoch=None,):
     """
@@ -1730,11 +1734,11 @@ def build_swin_model(
     unfreeze_layers=['features.0', 'features.1', 'norm'] (Swin Small Model have 7 featuers layers)
     This will unfreeze any parameter names containing those strings.
     """
-    from torchvision.models import swin_v2_s,Swin_V2_S_Weights
+    from torchvision.models import swin_v2_t,Swin_V2_T_Weights
     from torch.optim import AdamW,lr_scheduler
     from torch import nn
 
-    model = swin_v2_s(Swin_V2_S_Weights.DEFAULT)
+    model = swin_v2_t(Swin_V2_T_Weights.DEFAULT)
 
     in_features = model.head.in_features
     if dropout > 0:
@@ -1756,7 +1760,7 @@ def build_swin_model(
             if any(layer_name in name for layer_name in unfreeze_layers):
                 param.requires_grad = True
 
-    optimizer = AdamW(model.parameters(), lr=lr)
+    optimizer = AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
 
     if scheduler_type in {'cosine', 'cosineannealing'}:
         scheduler = lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-5)
