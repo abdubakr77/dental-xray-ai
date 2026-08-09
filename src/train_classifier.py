@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 def train(model, train_dl, valid_dl, epochs, criterion, optimizer,
           early_stopping_metric='loss', patience=10, scheduler=None,
-          enable_cutmix=False, enable_mixup=None,
+          enable_cutmix=False, enable_mixup=False,
           device_name='cpu', save_dir=os.getcwd()):
     
     device = torch.device(device_name)
@@ -131,6 +131,8 @@ def train(model, train_dl, valid_dl, epochs, criterion, optimizer,
             f"Train Accuracy: {train_acc:.4f}, Valid Accuracy: {valid_acc:.4f}"
         )
 
+        print(f"Epoch {epoch+1}: LR = {optimizer.param_groups[0]['lr']}")
+
         history.append({
             "train_loss": train_loss,
             "train_acc": train_acc,
@@ -177,4 +179,4 @@ def train(model, train_dl, valid_dl, epochs, criterion, optimizer,
     else:
         print("No best model found, using last model state.")
 
-    return model, best_epoch
+    return model, history, best_epoch
