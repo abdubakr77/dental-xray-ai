@@ -3,11 +3,14 @@ from tqdm import tqdm
 import os
 from torchvision.transforms import v2
 import torch.nn.functional as F
+from sklearn.metrics import recall_score
 
 def train(model, train_dl, valid_dl, epochs, criterion, optimizer,
           early_stopping_metric='loss', patience=10, scheduler=None,
           enable_cutmix=False, enable_mixup=False,
-          device_name='cpu', save_dir=os.getcwd()):
+          device_name='cpu', save_dir=os.getcwd(),
+          disease_class_idx=None, save_best_recall=False,
+          best_recall_name='best_recall.pt'):
     
     device = torch.device(device_name)
     model = model.to(device)
@@ -23,6 +26,7 @@ def train(model, train_dl, valid_dl, epochs, criterion, optimizer,
     history = []
     best_epoch = 0
     counter = 0
+    best_disease_recall = -float('inf') if save_best_recall else None
 
     metric_name = early_stopping_metric.lower()
     if metric_name in {"loss", "val_loss", "valid_loss"}:
@@ -96,6 +100,8 @@ def train(model, train_dl, valid_dl, epochs, criterion, optimizer,
 
         all_val_loss = []
         all_val_acc = []
+        all_val_labels = []
+        all_val_preds = []
 
         model.eval()
         with torch.no_grad():
@@ -112,11 +118,12 @@ def train(model, train_dl, valid_dl, epochs, criterion, optimizer,
                     loss = criterion(outputs, labels)
 
                 _, preds = torch.max(outputs, dim=1)
+                hard_labels = labels.argmax(dim=1) if labels.ndim > 1 else labels
 
-            hard_labels = labels.argmax(dim=1) if labels.ndim > 1 else labels
-
-            all_val_loss.append(loss.item())
-            all_val_acc.append((preds == hard_labels).float().mean().item())
+                all_val_loss.append(loss.item())
+                all_val_acc.append((preds == hard_labels).float().mean().item())
+                all_val_labels.extend(hard_labels.detach().cpu().tolist())
+                all_val_preds.extend(preds.detach().cpu().tolist())
 
         valid_loss = sum(all_val_loss) / len(all_val_loss)
         valid_acc = sum(all_val_acc) / len(all_val_acc)
@@ -126,9 +133,19 @@ def train(model, train_dl, valid_dl, epochs, criterion, optimizer,
         else:
             current_metric = valid_acc
 
+        if save_best_recall and disease_class_idx is not None:
+            disease_recall = recall_score(all_val_labels, all_val_preds, pos_label=disease_class_idx)
+            if disease_recall > best_disease_recall:
+                best_disease_recall = disease_recall
+                torch.save(model.state_dict(), os.path.join(save_dir, best_recall_name))
+                print(f"New best saved - disease recall: {best_disease_recall:.4f}")
+        else:
+            disease_recall = None
+
         print(
             f"Train Loss: {train_loss:.4f}, Valid Loss: {valid_loss:.4f} | "
             f"Train Accuracy: {train_acc:.4f}, Valid Accuracy: {valid_acc:.4f}"
+            + (f", Disease Recall: {disease_recall:.4f}" if disease_recall is not None else "")
         )
 
         print(f"Epoch {epoch+1}: LR = {optimizer.param_groups[0]['lr']}")
@@ -139,6 +156,7 @@ def train(model, train_dl, valid_dl, epochs, criterion, optimizer,
             "valid_loss": valid_loss,
             "valid_acc": valid_acc,
             "monitor_metric": current_metric,
+            "disease_recall": disease_recall,
         })
 
         if scheduler is not None:
