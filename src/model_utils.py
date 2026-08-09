@@ -1783,7 +1783,7 @@ def build_swin_model(
     return model, optimizer, scheduler
 
 
-def predict(model, dataloader, device, class_names,disease_class_idx=None, threshold=None,
+def predict_classifier(model, dataloader, device, class_names,disease_class_idx=None, threshold=None,
              show_plot=False, num_samples=20, save_plot_path=os.getcwd(), figsize=(12, 10)):
     """
     Runs the model over a dataloader and returns true/predicted labels.
