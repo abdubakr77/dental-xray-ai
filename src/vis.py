@@ -231,3 +231,19 @@ def draw_infrence_boxes(image, boxes_with_labels, color=(0, 255, 0)):
         cv2.rectangle(img, (x1, y1), (x2, y2), color, 3)
         cv2.putText(img, label, (x1, max(y1 - 10, 15)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
     return img
+
+def build_image_grid(images, labels, ncols=2, cell_size=(220, 220)):
+    """Stitches multiple images with a label under each into ONE composite image."""
+    nrows = int(np.ceil(len(images) / ncols))
+    cw, ch = cell_size
+    label_h = 28
+    grid = np.ones((nrows * (ch + label_h), ncols * cw, 3), dtype=np.uint8) * 255
+
+    for idx, (img, label) in enumerate(zip(images, labels)):
+        row, col = idx // ncols, idx % ncols
+        resized = cv2.resize(img, cell_size)
+        y0, x0 = row * (ch + label_h), col * cw
+        grid[y0:y0 + ch, x0:x0 + cw] = resized
+        cv2.putText(grid, label, (x0 + 5, y0 + ch + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+
+    return grid
