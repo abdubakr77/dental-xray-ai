@@ -247,3 +247,17 @@ def build_image_grid(images, labels, ncols=2, cell_size=(220, 220)):
         cv2.putText(grid, label, (x0 + 5, y0 + ch + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
 
     return grid
+
+def visualize_quadrant_stage(result):
+    """Left: full mouth with the 4 quadrant boxes. Right: the 4 quadrant crops stitched together."""
+    boxes = [(*box, name) for name, box in result['quadrant_boxes'].items()]
+    annotated = draw_infrence_boxes(result['original_image'], boxes)
+
+    quad_names = list(result['quadrant_images'].keys())
+    grid = build_image_grid([result['quadrant_images'][q] for q in quad_names], quad_names, ncols=2)
+
+    fig, ax = plt.subplots(1, 2, figsize=(14, 6))
+    ax[0].imshow(annotated); ax[0].set_title('Quadrant Detection'); ax[0].axis('off')
+    ax[1].imshow(grid); ax[1].set_title('Detected Quadrants'); ax[1].axis('off')
+    plt.tight_layout()
+    return fig
