@@ -1784,7 +1784,7 @@ def build_swin_model(
 
 
 def predict_classifier(model, dataloader, device, class_names,disease_class_idx=None, threshold=None,
-             show_plot=False, num_samples=20, save_plot_path=os.getcwd(), figsize=(12, 10)):
+             show_plot=False, num_samples=20, save_plot_path=os.getcwd(), figsize=(12, 10), return_probs=False):
     """
     Runs the model over a dataloader and returns true/predicted labels.
 
@@ -1796,6 +1796,9 @@ def predict_classifier(model, dataloader, device, class_names,disease_class_idx=
                    probability exceeds this value, instead of using argmax.
                    Lower than 0.5 favors catching more disease cases.
 
+        return_probs: if True, also returns a list of per-image class-probability
+                      dicts (all_probs), needed for confidence charts downstream.
+                   
     Returns:
         all_labels, all_preds
     """
@@ -1806,15 +1809,15 @@ def predict_classifier(model, dataloader, device, class_names,disease_class_idx=
     model = model.to(device)
     model.eval()
 
-    all_labels, all_preds = [], []
+    all_labels, all_preds, all_probs = [], [], []
 
     with torch.no_grad():
         for images, labels in dataloader:
             images = images.to(device)
             outputs = model(images)
+            probs = torch.softmax(outputs, dim=1)
 
             if threshold is not None:
-                probs = torch.softmax(outputs, dim=1)
                 disease_prob = probs[:, disease_class_idx]
                 preds = torch.where(disease_prob > threshold,
                                      torch.tensor(disease_class_idx, device=device),
@@ -1824,6 +1827,8 @@ def predict_classifier(model, dataloader, device, class_names,disease_class_idx=
 
             all_labels.extend(labels.numpy())
             all_preds.extend(preds.cpu().numpy())
+            if return_probs:
+                all_probs.extend(probs.cpu().numpy().tolist())
 
     if show_plot:
         dataset = getattr(dataloader, "dataset", None)
@@ -1870,4 +1875,7 @@ def predict_classifier(model, dataloader, device, class_names,disease_class_idx=
 
         plt.show()
 
+    if return_probs:
+        return all_labels, all_preds, all_probs
     return all_labels, all_preds
+
