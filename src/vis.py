@@ -223,3 +223,11 @@ def show_confusion_matrix(all_labels, all_preds, classes_names:list, save_dir=os
 
     print(classification_report(all_labels, all_preds, target_names=classes_names))
 
+def draw_infrence_boxes(image, boxes_with_labels, color=(0, 255, 0)):
+    """boxes_with_labels: list of (x1, y1, x2, y2, label)"""
+    img = image.copy()
+    for x1, y1, x2, y2, label in boxes_with_labels:
+        x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+        cv2.rectangle(img, (x1, y1), (x2, y2), color, 3)
+        cv2.putText(img, label, (x1, max(y1 - 10, 15)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+    return img
