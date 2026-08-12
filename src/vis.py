@@ -261,3 +261,26 @@ def visualize_quadrant_stage(result):
     ax[1].imshow(grid); ax[1].set_title('Detected Quadrants'); ax[1].axis('off')
     plt.tight_layout()
     return fig
+
+def visualize_teeth_stage(result):
+    """One row per quadrant. Col 1 = quadrant with teeth boxes. Col 2 = each tooth crop, labeled by class."""
+    quad_names = list(result['teeth_per_quadrant'].keys())
+    fig, ax = plt.subplots(len(quad_names), 2, figsize=(14, 5 * len(quad_names)))
+    if len(quad_names) == 1:
+        ax = ax.reshape(1, 2)
+
+    for i, quad_name in enumerate(quad_names):
+        teeth = result['teeth_per_quadrant'][quad_name]
+        quad_img = result['quadrant_images'][quad_name]
+
+        boxes = [(*t['box'], t['class_name']) for t in teeth]
+        annotated = draw_infrence_boxes(quad_img, boxes, color=(255, 165, 0))
+        ax[i, 0].imshow(annotated); ax[i, 0].set_title(quad_name); ax[i, 0].axis('off')
+
+        crop_images = [t['image'] for t in teeth]
+        crop_labels = [f"Tooth {t['class_name']}" for t in teeth]
+        grid = build_image_grid(crop_images, crop_labels, ncols=4, cell_size=(150, 150))
+        ax[i, 1].imshow(grid); ax[i, 1].set_title(f'{quad_name} - Teeth'); ax[i, 1].axis('off')
+
+    plt.tight_layout()
+    return fig
