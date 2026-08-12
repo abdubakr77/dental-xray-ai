@@ -284,3 +284,20 @@ def visualize_teeth_stage(result):
 
     plt.tight_layout()
     return fig
+
+def visualize_healthy_unhealthy_stage(result):
+    """One figure per quadrant, all its teeth in a grid, labeled tooth number + status."""
+    by_quadrant = {}
+    for t in result['all_teeth']:
+        by_quadrant.setdefault(t['quad_key'], []).append(t)
+
+    figs = []
+    for quad_name, teeth in by_quadrant.items():
+        images = [t['image'] for t in teeth]
+        labels = [f"{t['class_name']} - {t['status']}" for t in teeth]
+        grid = build_image_grid(images, labels, ncols=4, cell_size=(150, 150))
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.imshow(grid); ax.set_title(f'{quad_name} - Healthy / Unhealthy'); ax.axis('off')
+        figs.append(fig)
+    return figs
