@@ -1,5 +1,20 @@
 import cv2
 import os
+from torch import utils
+
+class SingleCropDataset(utils.data.Dataset):
+    """Wraps in-memory crops as a minimal Dataset so predict_classifier can run
+    on live, unlabeled inference crops the same way it runs on a real test set."""
+    def __init__(self, images, transform, classes):
+        self.images = images
+        self.transform = transform
+        self.classes = classes  # predict_classifier's show_plot path reads dataset.classes
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, idx):
+        return self.transform(self.images[idx]), 0  # dummy label,
 
 
 def crop_teeth_from_merged_label(image_path, label_path, class_names):
