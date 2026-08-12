@@ -318,3 +318,19 @@ def visualize_disease_stage(result):
         ax.imshow(grid); ax.set_title(f'{quad_name} - Disease Type'); ax.axis('off')
         figs.append(fig)
     return figs
+
+def visualize_final_result(result):
+    """Full mouth image, boxes only on diseased teeth, labeled with the final disease name."""
+    boxes = []
+    for t in result['diseased_teeth']:
+        qx1, qy1, qx2, qy2 = result['quadrant_boxes'][t['quad_key'].split('_')[-1]]
+        tx1, ty1, tx2, ty2 = t['box']  # coordinates relative to the quadrant crop
+        # offset the tooth box by the quadrant's own position on the full image
+        final_box = (qx1 + tx1, qy1 + ty1, qx1 + tx2, qy1 + ty2)
+        final_name = t['caries_severity'] or t['disease']
+        boxes.append((*final_box, f"{t['class_name']} - {final_name}"))
+
+    annotated = draw_infrence_boxes(result['original_image'], boxes, color=(255, 0, 0))
+    fig, ax = plt.subplots(figsize=(10, 8))
+    ax.imshow(annotated); ax.set_title('Detected Disease Summary'); ax.axis('off')
+    return fig
