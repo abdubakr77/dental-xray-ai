@@ -231,6 +231,15 @@ def export_quadrants_using_quad_model(quadrant_model, original_images_path, anno
                                     export_images=True,
                                     specific_image_name=None):
 
+
+    os.makedirs(output_root, exist_ok=True)
+
+    if export_images:
+        os.makedirs(os.path.join(output_root, 'images'), exist_ok=True)
+
+    if export_labels:
+        os.makedirs(os.path.join(output_root, 'labels'), exist_ok=True)
+
     # ---- check + clear existing images/labels ----
     if clear_existing and not debugging:
         imgs_path = os.path.join(output_root, 'images')
@@ -515,6 +524,16 @@ def export_teeth_in_quad_using_enum_model(enum_model, images_root, labels_root,
     Returns:
         log_df: a DataFrame of one row per event. None when debugging=True.
     """
+
+
+    os.makedirs(output_root, exist_ok=True)
+
+    if export_images:
+        os.makedirs(os.path.join(output_root, 'images'), exist_ok=True)
+
+    if export_labels:
+        os.makedirs(os.path.join(output_root, 'labels'), exist_ok=True)
+
  
     # ---- check + clear existing images/labels ----
     if clear_existing and not debugging:
