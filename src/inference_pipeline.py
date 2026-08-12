@@ -193,6 +193,17 @@ def run_pipeline(image_path, models, class_names, device='cuda', conf_threshold=
             output_root=quad_out, conf_threshold=conf_threshold,
             clear_existing=False, export_labels=False, export_images=True, verbose=False)
 
+        result['original_image'] = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB)
+        result['quadrant_boxes'] = {
+            row['quad'].replace(' ', ''): (row['x1'], row['y1'], row['x2'], row['y2'])
+            for row in result['quadrant_log'] if row['event'] == 'successful_detection'
+        }
+        result['quadrant_images'] = {}
+        for fname in os.listdir(os.path.join(quad_out, 'images')):
+            quad_key = os.path.splitext(fname)[0]
+            result['quadrant_images'][quad_key] = cv2.cvtColor(
+                cv2.imread(os.path.join(quad_out, 'images', fname)), cv2.COLOR_BGR2RGB)
+
         for _, row in quad_log_df[quad_log_df['event'].isin(['low_confidence', 'missing_quad', 'duplicate_quad'])].iterrows():
             warnings.append(f"{row['event']}: {row.get('quad')} (confidence: {row.get('confidence')})")
 
@@ -242,6 +253,8 @@ def run_pipeline(image_path, models, class_names, device='cuda', conf_threshold=
             t['status_probs'] = dict(zip(class_names['healthy_unhealthy'], prob))
             if t['status'] == 'Disease Found':
                 diseased_teeth.append(t)
+
+        result['all_teeth'] = all_teeth
 
         if not diseased_teeth:
             result['diseased_teeth'] = []
