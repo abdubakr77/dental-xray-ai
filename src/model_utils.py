@@ -404,10 +404,11 @@ def export_quadrants_using_quad_model(quadrant_model, original_images_path, anno
                             f.write(f"{cls_id} {cx} {cy} {nw} {nh}\n")
 
         log_records.append({
-            'File_Name': fname, 'event': 'boxes_detected',
-            'quad': None, 'confidence': None,
+            'File_Name': fname, 'event': 'successful_detection',
+            'quad': quad_name, 'confidence': confidence,
             'n_boxes': n_predicted_boxes,
-            'crop_area': crop_h * crop_w
+            'crop_area': crop_h * crop_w,
+            'x1': float(x1), 'y1': float(y1), 'x2': float(x2), 'y2': float(y2),
         })
 
         if expected_quads:
