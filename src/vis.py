@@ -301,3 +301,20 @@ def visualize_healthy_unhealthy_stage(result):
         ax.imshow(grid); ax.set_title(f'{quad_name} - Healthy / Unhealthy'); ax.axis('off')
         figs.append(fig)
     return figs
+
+def visualize_disease_stage(result):
+    """Only the diseased teeth, grouped by quadrant, labeled with the disease type."""
+    by_quadrant = {}
+    for t in result['diseased_teeth']:
+        by_quadrant.setdefault(t['quad_key'], []).append(t)
+
+    figs = []
+    for quad_name, teeth in by_quadrant.items():
+        images = [t['image'] for t in teeth]
+        labels = [f"{t['class_name']} - {t['disease']}" for t in teeth]
+        grid = build_image_grid(images, labels, ncols=4, cell_size=(150, 150))
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.imshow(grid); ax.set_title(f'{quad_name} - Disease Type'); ax.axis('off')
+        figs.append(fig)
+    return figs
