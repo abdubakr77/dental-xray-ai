@@ -3,7 +3,8 @@ import os
 import sys
 # add the project root to the path so the src package can be imported
 sys.path.append(os.path.abspath('..'))
-from torch import utils, float32, load, device, cuda
+from torch import utils, float32, load, cuda
+from torch import device as torch_device
 import tempfile, shutil
 from src.model_utils import predict_classifier, export_quadrants_using_quad_model, export_teeth_in_quad_using_enum_model, build_swin_model
 from torchvision.transforms import v2
@@ -15,7 +16,7 @@ from ultralytics import YOLO
 
 def load_recommended_models(final_models, device='cuda'):
 
-    device = device(
+    device = torch_device(
         device if cuda.is_available() else 'cpu'
     )
 
@@ -160,8 +161,8 @@ def crop_teeth_from_merged_label(image_path, label_path, class_names):
 
 
 CLASSIFIER_TRANSFORM = v2.Compose([
-    v2.Resize((256, 256)),
     v2.ToImage(),
+    v2.Resize((256, 256)),
     v2.ToDtype(float32, scale=True),
     v2.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
 ])
@@ -256,18 +257,49 @@ def run_pipeline(image_path, models, class_names, device='cuda', conf_threshold=
         for t, pred, prob in zip(diseased_teeth, preds, probs):
             t['disease'] = class_names['disease'][pred]
             t['disease_probs'] = dict(zip(class_names['disease'], prob))
-            if t['disease'] == 'caries':
+            if t['disease'] == 'Caries':
                 caries_teeth.append(t)
 
         # ---- Stage 5: caries severity, batched over caries teeth only ----
+        print(len(caries_teeth))
+
         if caries_teeth:
-            dataset = SingleCropDataset([t['image'] for t in caries_teeth], CLASSIFIER_TRANSFORM, class_names['caries_severity'])
-            loader = utils.data.DataLoader(dataset, batch_size=16)
-            _, preds, probs = predict_classifier(models['caries_status_model'], loader, device,
-                                                   class_names['caries_severity'], return_probs=True)
+
+            dataset = SingleCropDataset(
+                [t['image'] for t in caries_teeth],
+                CLASSIFIER_TRANSFORM,
+                class_names['caries_severity']
+            )
+
+            loader = utils.data.DataLoader(
+                dataset,
+                batch_size=16
+            )
+
+            _, preds, probs = predict_classifier(
+                models['caries_status_model'],
+                loader,
+                device,
+                class_names['caries_severity'],
+                return_probs=True
+            )
+
             for t, pred, prob in zip(caries_teeth, preds, probs):
-                t['disease'] = class_names['caries_severity'][pred]
-                t['caries_probs'] = dict(zip(class_names['caries_severity'], prob))
+
+                # Don't overwrite the original disease
+                t['caries_severity'] = class_names['caries_severity'][pred]
+
+                # Add severity probabilities to the same result
+                t['caries_severity_probs'] = {
+                    cls: round(float(p) * 100, 2)
+                    for cls, p in zip(class_names['caries_severity'], prob)
+                }
+
+        else:
+            # Keep the same structure for teeth that never entered stage 5
+            for t in diseased_teeth:
+                t['caries_severity'] = None
+                t['caries_severity_probs'] = {}
 
         result['diseased_teeth'] = diseased_teeth
         return result, warnings
