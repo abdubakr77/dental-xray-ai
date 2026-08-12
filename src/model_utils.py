@@ -4,7 +4,7 @@ import numpy as np
 import os
 import torch
 from src.utils import _iou_xyxy,_xywh_norm_to_xyxy_px
-from src.vis import visualize_augmentation
+from src.vis import visualize_augmentation,draw_corner_box
 from tqdm import tqdm
 import pandas as pd
 from ultralytics import YOLO
@@ -14,38 +14,6 @@ import shutil
 import random
 import torch.nn as nn
 from torch import exp
-
-def draw_corner_box(img, x1, y1, x2, y2, label_name, confidence, color, length, thickness):
-    """
-    Draw a corner-style bounding box with a label badge on an image in-place.
-
-    Args:
-        img        : RGB numpy array to draw on (modified in place)
-        x1, y1    : top-left corner in pixels
-        x2, y2    : bottom-right corner in pixels
-        label_name : class label string
-        confidence : confidence score in [0, 1]
-        color      : BGR colour tuple for the box and badge
-        length     : length of each corner tick in pixels
-        thickness  : line thickness in pixels
-    """
-    # draw L-shaped ticks at each corner
-    cv2.line(img, (x1, y1), (x1 + length, y1), color, thickness)
-    cv2.line(img, (x1, y1), (x1, y1 + length), color, thickness)
-    cv2.line(img, (x2, y1), (x2 - length, y1), color, thickness)
-    cv2.line(img, (x2, y1), (x2, y1 + length), color, thickness)
-    cv2.line(img, (x1, y2), (x1 + length, y2), color, thickness)
-    cv2.line(img, (x1, y2), (x1, y2 - length), color, thickness)
-    cv2.line(img, (x2, y2), (x2 - length, y2), color, thickness)
-    cv2.line(img, (x2, y2), (x2, y2 - length), color, thickness)
-
-# draw filled badge above the box, then write text on top
-    if label_name and confidence:
-        text = f"{label_name} {confidence*100:.1f}%"
-        (tw, th), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 1.0, 2)
-        cv2.rectangle(img, (x1, y1 - th - 15), (x1 + tw + 10, y1), color, -1)
-        cv2.putText(img, text, (x1 + 5, y1 - 8), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 0), 2)
-
 
 def dedupe_gt_label_files(labels_root, iou_threshold=0.85, dry_run=True, verbose=False):
     """

@@ -5,6 +5,38 @@ import os
 from sklearn.utils import shuffle
 from sklearn.metrics import confusion_matrix, classification_report
 import seaborn as sns
+import cv2
+
+def draw_corner_box(img, x1, y1, x2, y2, label_name, confidence, color, length, thickness):
+    """
+    Draw a corner-style bounding box with a label badge on an image in-place.
+
+    Args:
+        img        : RGB numpy array to draw on (modified in place)
+        x1, y1    : top-left corner in pixels
+        x2, y2    : bottom-right corner in pixels
+        label_name : class label string
+        confidence : confidence score in [0, 1]
+        color      : BGR colour tuple for the box and badge
+        length     : length of each corner tick in pixels
+        thickness  : line thickness in pixels
+    """
+    # draw L-shaped ticks at each corner
+    cv2.line(img, (x1, y1), (x1 + length, y1), color, thickness)
+    cv2.line(img, (x1, y1), (x1, y1 + length), color, thickness)
+    cv2.line(img, (x2, y1), (x2 - length, y1), color, thickness)
+    cv2.line(img, (x2, y1), (x2, y1 + length), color, thickness)
+    cv2.line(img, (x1, y2), (x1 + length, y2), color, thickness)
+    cv2.line(img, (x1, y2), (x1, y2 - length), color, thickness)
+    cv2.line(img, (x2, y2), (x2 - length, y2), color, thickness)
+    cv2.line(img, (x2, y2), (x2, y2 - length), color, thickness)
+
+# draw filled badge above the box, then write text on top
+    if label_name and confidence:
+        text = f"{label_name} {confidence*100:.1f}%"
+        (tw, th), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 1.0, 2)
+        cv2.rectangle(img, (x1, y1 - th - 15), (x1 + tw + 10, y1), color, -1)
+        cv2.putText(img, text, (x1 + 5, y1 - 8), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 0), 2)
 
 def show_image_boxes(df,images_path,target:list = None):
     if target and len(target) == 2:
@@ -72,7 +104,6 @@ def show_image_boxes(df,images_path,target:list = None):
 
     ax.set_title(fname)
 
-
 def visualize_augmentation(images, bboxes_list=None, class_labels_list=None, titles=None):
     n = len(images)
     fig, axes = plt.subplots(1, n, figsize=(5 * n, 5))
@@ -106,8 +137,6 @@ def visualize_augmentation(images, bboxes_list=None, class_labels_list=None, tit
 
     plt.tight_layout()
     plt.show()
-
-
 
 def show_all_images_counts(all_path: list):
     """Count images per class for each split."""
@@ -153,22 +182,22 @@ def show_curves(model_history,save_dir=os.getcwd()):
     model_history : list of dicts — keys: train_loss, valid_loss, train_acc, valid_acc
     """
     train_loss = [x["train_loss"] for x in model_history]
-    valid_loss   = [x["valid_loss"]   for x in model_history]
-    train_acc  = [x["train_acc"]  for x in model_history]
-    valid_acc    = [x["valid_acc"]    for x in model_history]
+    valid_loss = [x["valid_loss"] for x in model_history]
+    train_acc  = [x["train_acc" ] for x in model_history]
+    valid_acc  = [x["valid_acc" ] for x in model_history]
 
     _, ax = plt.subplots(1, 2, figsize=(14, 5))
 
-    ax[0].plot(train_loss, label="Train",      linewidth=2)
-    ax[0].plot(valid_loss,   label="Validation", linewidth=2, linestyle="--")
+    ax[0].plot(train_loss, label="Train",  linewidth=2)
+    ax[0].plot(valid_loss, label="Validation", linewidth=2, linestyle="--")
     ax[0].set_title("Loss Over Epochs", fontsize=13, fontweight="bold")
     ax[0].set_ylabel("Loss")
     ax[0].set_xlabel("Epoch")
     ax[0].legend()
     ax[0].grid(alpha=0.3)
 
-    ax[1].plot(train_acc, label="Train",      linewidth=2)
-    ax[1].plot(valid_acc,   label="Validation", linewidth=2, linestyle="--")
+    ax[1].plot(train_acc, label="Train", linewidth=2)
+    ax[1].plot(valid_acc, label="Validation", linewidth=2, linestyle="--")
     ax[1].set_title("Accuracy Over Epochs", fontsize=13, fontweight="bold")
     ax[1].set_ylabel("Accuracy")
     ax[1].set_xlabel("Epoch")
@@ -193,3 +222,4 @@ def show_confusion_matrix(all_labels, all_preds, classes_names:list, save_dir=os
     plt.show()
 
     print(classification_report(all_labels, all_preds, target_names=classes_names))
+
