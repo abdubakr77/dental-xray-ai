@@ -8,30 +8,33 @@ paths:
 healthy_unhealthy:
   model_args:
     image_size: 256
-    epochs: 50
+    epochs: 15
     batch_size: 64
-    patience: 10
+    patience: 0
     lr: 0.0001
+    drop_out: 0.4
     num_workers: 4
     device_name: 'cuda'
     save_dir: ../Runs/Stage 3/healthy_unhealthy
 disease_classifier:
   model_args:
     image_size: 256
-    epochs: 50
+    epochs: 25
     batch_size: 64
-    patience: 10
+    patience: 7
     lr: 0.0001
+    drop_out: 0.4
     num_workers: 4
     device_name: 'cuda'
     save_dir: ../Runs/Stage 3/disease_classifier
 caries_or_deepcaries:
   model_args:
     image_size: 256
-    epochs: 50
+    epochs: 30
     batch_size: 64
-    patience: 10
+    patience: 7
     lr: 0.0001
+    drop_out: 0.5
     num_workers: 4
     device_name: 'cuda'
     save_dir: ../Runs/Stage 3/caries_or_deepcaries
