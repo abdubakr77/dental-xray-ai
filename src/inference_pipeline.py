@@ -3,11 +3,116 @@ import os
 import sys
 # add the project root to the path so the src package can be imported
 sys.path.append(os.path.abspath('..'))
-from torch import utils, float32
+from torch import utils, float32, load, device, cuda
 import tempfile, shutil
-from src.model_utils import predict_classifier, export_quadrants_using_quad_model, export_teeth_in_quad_using_enum_model
+from src.model_utils import predict_classifier, export_quadrants_using_quad_model, export_teeth_in_quad_using_enum_model, build_swin_model
 from torchvision.transforms import v2
 import pandas as pd
+
+import os
+from ultralytics import YOLO
+
+
+def load_recommended_models(final_models, device='cuda'):
+
+    device = device(
+        device if cuda.is_available() else 'cpu'
+    )
+
+    models = {}
+
+    # =========================================================
+    # YOLO Detection Models
+    # =========================================================
+
+    for model_name in [
+        'quadrant_model',
+        'enumeration_model'
+    ]:
+
+        model_path = final_models[model_name]
+
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(
+                f"Model not found: {model_path}"
+            )
+
+        models[model_name] = YOLO(model_path)
+
+        print(f"Loaded {model_name} (YOLO)")
+
+    # =========================================================
+    # Swin Classification Models
+    # =========================================================
+
+    swin_configs = {
+        'teeth_status_model': {
+            'num_classes': final_models['teeth_status_nc'],
+            'dropout': 0.4,
+        },
+        'disease_model': {
+            'num_classes': final_models['disease_nc'],
+            'dropout': 0.4,
+        },
+        'caries_status_model': {
+            'num_classes': final_models['caries_status_nc'],
+            'dropout': 0.5,
+        },
+    }
+
+    for model_name, config in swin_configs.items():
+
+        model_path = final_models[model_name]
+
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(
+                f"Model not found: {model_path}"
+            )
+
+        model, _, _ = build_swin_model(
+            num_classes=config['num_classes'],
+            dropout=config['dropout'],
+            freeze_backbone=False,
+            unfreeze_layers=None
+        )
+
+        checkpoint = load(
+            model_path,
+            map_location=device
+        )
+
+        if 'state_dict' in checkpoint:
+            state_dict = checkpoint['state_dict']
+
+        elif 'model_state_dict' in checkpoint:
+            state_dict = checkpoint['model_state_dict']
+
+        else:
+            state_dict = checkpoint
+
+        state_dict = {
+            key.replace('module.', '', 1)
+            if key.startswith('module.')
+            else key: value
+            for key, value in state_dict.items()
+        }
+
+        model.load_state_dict(state_dict)
+
+        model.to(device)
+        model.eval()
+
+        models[model_name] = model
+
+        print(
+            f"Loaded {model_name} (Swin) | "
+            f"classes={config['num_classes']} | "
+            f"dropout={config['dropout']}"
+        )
+
+    return models
+
+
 
 class SingleCropDataset(utils.data.Dataset):
     """Wraps in-memory crops as a minimal Dataset so predict_classifier can run
@@ -95,7 +200,7 @@ def run_pipeline(image_path, models, class_names, device='cuda', conf_threshold=
         # ---- Stage 2: teeth detection per quadrant ----
         teeth_out = os.path.join(session_dir, 'teeth_out')
         teeth_log_df = export_teeth_in_quad_using_enum_model(
-            models['enumeration_continued_model'],
+            models['enumeration_model'],
             images_root=os.path.join(quad_out, 'images'),
             labels_root=os.path.join(quad_out, 'labels'),
             output_root=teeth_out, conf_threshold=conf_threshold,
