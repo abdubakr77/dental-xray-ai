@@ -360,7 +360,8 @@ def export_quadrants_using_quad_model(quadrant_model, original_images_path, anno
                     'File_Name': fname, 'event': 'successful_detection',
                     'quad': quad_name, 'confidence': confidence,
                     'n_boxes': n_predicted_boxes,
-                    'crop_area': crop_h * crop_w
+                    'crop_area': crop_h * crop_w,
+                    'x1': float(x1), 'y1': float(y1), 'x2': float(x2), 'y2': float(y2),
                 })
 
                 if export_images:
@@ -1713,6 +1714,7 @@ def build_swin_model(
     epochs=10,
     freeze_backbone=True,
     unfreeze_layers=None,
+    optimizer_type='adamw',
     scheduler_type='cosine',
     dropout=0.0,
     steps_per_epoch=None,):
@@ -1723,7 +1725,7 @@ def build_swin_model(
     This will unfreeze any parameter names containing those strings.
     """
     from torchvision.models import swin_v2_t,Swin_V2_T_Weights
-    from torch.optim import AdamW,lr_scheduler
+    from torch.optim import AdamW,lr_scheduler,SGD
     from torch import nn
 
     model = swin_v2_t(Swin_V2_T_Weights.DEFAULT)
@@ -1748,7 +1750,17 @@ def build_swin_model(
             if any(layer_name in name for layer_name in unfreeze_layers):
                 param.requires_grad = True
 
-    optimizer = AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+                
+    if optimizer_type.strip().lower() == 'adamw':
+        optimizer = AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+
+    elif optimizer_type.strip().lower() in ['sgd','stochastic_gradient_descent']:
+        optimizer = SGD(
+                        model.parameters(),
+                        lr=lr,
+                        momentum=0.9,
+                        weight_decay=weight_decay
+                    )
 
     if scheduler_type in {'cosine', 'cosineannealing'}:
         scheduler = lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-5)
