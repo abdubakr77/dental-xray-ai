@@ -1729,6 +1729,7 @@ def build_swin_model(
     from torch import nn
 
     model = swin_v2_t(Swin_V2_T_Weights.DEFAULT)
+    print(f"Model Loaded: SwinV2-T (num_classes={num_classes})")
 
     in_features = model.head.in_features
     if dropout > 0:
@@ -1739,20 +1740,26 @@ def build_swin_model(
     else:
         model.head = nn.Linear(in_features, num_classes)
 
+    print(f"Head Replaced: Linear(in_features={in_features}, out_features={num_classes})")
+
     if freeze_backbone:
         for param in model.parameters():
             param.requires_grad = False
         for param in model.head.parameters():
             param.requires_grad = True
+        print("Backbone Frozen: True | Head Trainable: True")
+    else:
+        print("Backbone Frozen: False | All parameters trainable")
 
     if unfreeze_layers:
         for name, param in model.named_parameters():
             if any(layer_name in name for layer_name in unfreeze_layers):
                 param.requires_grad = True
+        print(f"Selective Unfreeze Enabled: {unfreeze_layers}")
 
-                
     if optimizer_type.strip().lower() == 'adamw':
         optimizer = AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+        print(f"Optimizer Loaded: AdamW (lr={lr}, weight_decay={weight_decay})")
 
     elif optimizer_type.strip().lower() in ['sgd','stochastic_gradient_descent']:
         optimizer = SGD(
@@ -1761,13 +1768,19 @@ def build_swin_model(
                         momentum=0.9,
                         weight_decay=weight_decay
                     )
+        print(f"Optimizer Loaded: SGD (lr={lr}, momentum=0.9, weight_decay={weight_decay})")
+    else:
+        raise ValueError(f"Unsupported optimizer_type='{optimizer_type}'")
 
     if scheduler_type in {'cosine', 'cosineannealing'}:
         scheduler = lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-5)
+        print(f"Scheduler Loaded: CosineAnnealingLR (T_max={epochs}, eta_min=1e-5)")
     elif scheduler_type in {'step', 'steplr'}:
         scheduler = lr_scheduler.StepLR(optimizer, step_size=max(1, epochs // 3), gamma=0.1)
+        print(f"Scheduler Loaded: StepLR (step_size={max(1, epochs // 3)}, gamma=0.1)")
     elif scheduler_type in {'reduce_on_plateau', 'reduceLROnPlateau'}:
         scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=1)
+        print("Scheduler Loaded: ReduceLROnPlateau (mode='min', factor=0.5, patience=1)")
     elif scheduler_type in {'one_cycle', 'on_cycle'}:
         if steps_per_epoch is None:
             steps_per_epoch = 1
@@ -1777,9 +1790,12 @@ def build_swin_model(
             steps_per_epoch=steps_per_epoch,
             epochs=epochs
         )
+        print(f"Scheduler Loaded: OneCycleLR (max_lr={lr}, steps_per_epoch={steps_per_epoch}, epochs={epochs})")
     else:
         scheduler = None
+        print(f"Scheduler Loaded: None (scheduler_type='{scheduler_type}')")
 
+    print("Model Build Complete")
     return model, optimizer, scheduler
 
 
