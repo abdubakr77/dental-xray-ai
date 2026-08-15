@@ -192,12 +192,18 @@ def run_pipeline(image_path, models, class_names, device='cuda', conf_threshold=
             models['quadrant_model'], img_folder, annotations_df=dummy_df,
             output_root=quad_out, conf_threshold=conf_threshold,
             clear_existing=False, export_labels=False, export_images=True, verbose=False)
+        
+        result['quadrant_log'] = quad_log_df.to_dict('records')
 
         result['original_image'] = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB)
         result['quadrant_boxes'] = {
             row['quad'].replace(' ', ''): (row['x1'], row['y1'], row['x2'], row['y2'])
             for row in result['quadrant_log'] if row['event'] == 'successful_detection'
         }
+
+        # for row in result['quadrant_log']:
+        #     print(row['event'], row.get('x1'), row.get('y1'), row.get('x2'), row.get('y2'))
+
         result['quadrant_images'] = {}
         for fname in os.listdir(os.path.join(quad_out, 'images')):
             quad_key = os.path.splitext(fname)[0]
@@ -207,7 +213,6 @@ def run_pipeline(image_path, models, class_names, device='cuda', conf_threshold=
         for _, row in quad_log_df[quad_log_df['event'].isin(['low_confidence', 'missing_quad', 'duplicate_quad'])].iterrows():
             warnings.append(f"{row['event']}: {row.get('quad')} (confidence: {row.get('confidence')})")
 
-        result['quadrant_log'] = quad_log_df.to_dict('records')
 
         # ---- Stage 2: teeth detection per quadrant ----
         teeth_out = os.path.join(session_dir, 'teeth_out')
@@ -215,7 +220,7 @@ def run_pipeline(image_path, models, class_names, device='cuda', conf_threshold=
             models['enumeration_model'],
             images_root=os.path.join(quad_out, 'images'),
             labels_root=os.path.join(quad_out, 'labels'),
-            output_root=teeth_out, conf_threshold=conf_threshold,
+            output_root=teeth_out, conf_threshold=conf_threshold,background_area_ratio_high=5,leak_area_ratio=0.3,
             clear_existing=False, export_labels=True, export_images=True, verbose=False)
 
         for _, row in teeth_log_df[teeth_log_df['event'].isin(
@@ -274,8 +279,12 @@ def run_pipeline(image_path, models, class_names, device='cuda', conf_threshold=
                 caries_teeth.append(t)
 
         # ---- Stage 5: caries severity, batched over caries teeth only ----
-        print(len(caries_teeth))
+        # print(len(caries_teeth))
+        for t in diseased_teeth:
+            t['caries_severity'] = None
+            t['caries_severity_probs'] = {}
 
+        # Run severity classifier only for Caries teeth
         if caries_teeth:
 
             dataset = SingleCropDataset(
@@ -299,20 +308,12 @@ def run_pipeline(image_path, models, class_names, device='cuda', conf_threshold=
 
             for t, pred, prob in zip(caries_teeth, preds, probs):
 
-                # Don't overwrite the original disease
                 t['caries_severity'] = class_names['caries_severity'][pred]
 
-                # Add severity probabilities to the same result
                 t['caries_severity_probs'] = {
                     cls: round(float(p) * 100, 2)
                     for cls, p in zip(class_names['caries_severity'], prob)
                 }
-
-        else:
-            # Keep the same structure for teeth that never entered stage 5
-            for t in diseased_teeth:
-                t['caries_severity'] = None
-                t['caries_severity_probs'] = {}
 
         result['diseased_teeth'] = diseased_teeth
         return result, warnings
