@@ -118,3 +118,29 @@ def run_teeth_only(crop_image_path: str, quadrant_name: str, models: dict,
         }
     finally:
         shutil.rmtree(session_dir, ignore_errors=True)
+
+
+def _run_single_classifier(tooth_image_rgb, model, class_names: list) -> dict:
+    """Shared logic for the three classifier-only playground stages."""
+    dataset = SingleCropDataset([tooth_image_rgb], CLASSIFIER_TRANSFORM, class_names)
+    loader = torch_utils.data.DataLoader(dataset, batch_size=1)
+
+    t0 = time.time()
+    _, preds, probs = predict_classifier(model, loader, _device_str(), class_names, return_probs=True)
+    elapsed = time.time() - t0
+
+    pred_class = class_names[preds[0]]
+    prob_dict = dict(zip(class_names, [float(p) for p in probs[0]]))
+    return {'prediction': pred_class, 'probabilities': prob_dict, 'inference_seconds': elapsed}
+
+
+def run_healthy_unhealthy_only(tooth_image_rgb, models: dict, class_names: list) -> dict:
+    return _run_single_classifier(tooth_image_rgb, models['teeth_status_model'], class_names)
+
+
+def run_disease_only(tooth_image_rgb, models: dict, class_names: list) -> dict:
+    return _run_single_classifier(tooth_image_rgb, models['disease_model'], class_names)
+
+
+def run_caries_severity_only(tooth_image_rgb, models: dict, class_names: list) -> dict:
+    return _run_single_classifier(tooth_image_rgb, models['caries_status_model'], class_names)
