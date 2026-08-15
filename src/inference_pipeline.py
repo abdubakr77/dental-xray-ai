@@ -1,12 +1,9 @@
 import cv2
 import os
-import sys
-# add the project root to the path so the src package can be imported
-sys.path.append(os.path.abspath('..'))
 from torch import utils, float32, load, cuda
 from torch import device as torch_device
 import tempfile, shutil
-from src.model_utils import predict_classifier, export_quadrants_using_quad_model, export_teeth_in_quad_using_enum_model, build_swin_model
+from model_utils import predict_classifier, export_quadrants_using_quad_model, export_teeth_in_quad_using_enum_model, build_swin_model
 from torchvision.transforms import v2
 import pandas as pd
 

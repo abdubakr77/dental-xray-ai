@@ -4,10 +4,8 @@ import os
 import shutil
 from tqdm import tqdm
 import cv2
-import sys
-sys.path.append(os.path.abspath('..'))
 
-from src.vis import visualize_augmentation
+from vis import visualize_augmentation
 import albumentations as A
 import numpy as np 
 

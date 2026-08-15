@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import torch
-from src.utils import _iou_xyxy,_xywh_norm_to_xyxy_px
-from src.vis import visualize_augmentation,draw_corner_box
+from utils import _iou_xyxy,_xywh_norm_to_xyxy_px
+from vis import visualize_augmentation,draw_corner_box
 from tqdm import tqdm
 import pandas as pd
 from ultralytics import YOLO
