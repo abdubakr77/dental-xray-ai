@@ -311,7 +311,7 @@ def visualize_disease_stage(result):
     figs = []
     for quad_name, teeth in by_quadrant.items():
         images = [t['image'] for t in teeth]
-        labels = [f"{t['class_name']} - {t['disease']}" for t in teeth]
+        labels = [f"{t['class_name']} - {t.get('caries_severity') or t.get('disease', 'Unknown')}" for t in teeth]
         grid = build_image_grid(images, labels, ncols=4, cell_size=(150, 150))
 
         fig, ax = plt.subplots(figsize=(12, 6))
@@ -327,7 +327,7 @@ def visualize_final_result(result):
         tx1, ty1, tx2, ty2 = t['box']  # coordinates relative to the quadrant crop
         # offset the tooth box by the quadrant's own position on the full image
         final_box = (qx1 + tx1, qy1 + ty1, qx1 + tx2, qy1 + ty2)
-        final_name = t['caries_severity'] or t['disease']
+        final_name = t.get('caries_severity') or t.get('disease', 'Unknown')
         boxes.append((*final_box, f"{t['class_name']} - {final_name}"))
 
     annotated = draw_infrence_boxes(result['original_image'], boxes, color=(255, 0, 0))
