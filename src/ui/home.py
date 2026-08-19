@@ -7,6 +7,7 @@ dedicated Help page instead of crowding this one.
 """
 
 import os
+import random
 import streamlit as st
 
 from core.config import SAMPLE_IMAGES_DIR, DISCLAIMER
@@ -23,9 +24,16 @@ PIPELINE_STEPS = [
 
 
 def _list_sample_images() -> list:
+    """A random pick (up to 4), chosen once per session - not re-rolled on
+    every rerun. Re-rolling every render was the actual bug: clicking a
+    sample's own button also triggers a rerun, so a fresh random pick would
+    replace the set on that very click, before the app even navigated away."""
     if not os.path.isdir(SAMPLE_IMAGES_DIR):
         return []
-    return sorted(f for f in os.listdir(SAMPLE_IMAGES_DIR) if f.lower().endswith(('.png', '.jpg', '.jpeg')))[:4]
+    if 'home_sample_pick' not in st.session_state:
+        all_samples = [f for f in os.listdir(SAMPLE_IMAGES_DIR) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+        st.session_state['home_sample_pick'] = random.sample(all_samples, k=min(4, len(all_samples)))
+    return st.session_state['home_sample_pick']
 
 
 def _go_to_analysis(sample_filename: str = None):
@@ -86,9 +94,10 @@ def render(debug: bool = False):
         st.markdown("#### Try a sample image")
         st.caption("Pick one to jump straight into analysis with it pre-selected.")
         cols = st.columns(len(samples))
-        for col, fname in zip(cols, samples):
+        for i, (col, fname) in enumerate(zip(cols, samples)):
             with col:
-                st.image(os.path.join(SAMPLE_IMAGES_DIR, fname), width='stretch')
+                with st.container(key=f"home_sample_card_{i}"):
+                    st.image(os.path.join(SAMPLE_IMAGES_DIR, fname), width='stretch')
                 if st.button("Analyze this", key=f"home_sample_{fname}", width='stretch'):
                     _go_to_analysis(fname)
                     st.rerun()
