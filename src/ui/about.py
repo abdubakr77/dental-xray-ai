@@ -11,9 +11,8 @@ produces). Confusion matrix images are read from the same paths as before.
 import os
 import streamlit as st
 import pandas as pd
-
 from src.core.model_registry import device_info
-from src.core.config import CONFIG_PATH
+from src.core.config import CONFIG_PATH,_PROJECT_ROOT 
 
 
 def render(debug: bool = False):
@@ -49,19 +48,27 @@ def render(debug: bool = False):
 
     st.divider()
     st.subheader("🔍 Confusion Matrices")
+
     cm_paths = {
         'Healthy/Unhealthy': '../Runs/Stage 3/Healthy & Un-Healthy Classifier/confusion_matrix.png',
         'Disease Type': '../Runs/Stage 3/Disease Classifier/confusion_matrix.png',
         'Caries Severity': '../Runs/Stage 3/Caries & Deep Caries Classifier/confusion_matrix.png',
     }
+
     cols = st.columns(3)
     for col, (name, path) in zip(cols, cm_paths.items()):
         with col:
             st.caption(name)
+            
             if os.path.exists(path):
                 st.image(path, width='stretch')
             else:
-                st.warning("📁 File not found")
+                fixed_path = os.path.join(_PROJECT_ROOT, path.replace("../", "", 1))
+                
+                if os.path.exists(fixed_path):
+                    st.image(fixed_path, width='stretch')
+                else:
+                    st.warning("📁 File not found")
 
     st.divider()
     st.subheader("⚠️ Model Limitations")
