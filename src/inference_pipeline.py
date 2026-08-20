@@ -11,11 +11,7 @@ import os
 from ultralytics import YOLO
 
 
-def load_recommended_models(final_models, device='cuda'):
-
-    device = torch_device(
-        device if cuda.is_available() else 'cpu'
-    )
+def load_recommended_models(final_models, device='cuda' if cuda.is_available() else 'cpu'):
 
     models = {}
 
@@ -37,7 +33,7 @@ def load_recommended_models(final_models, device='cuda'):
 
         models[model_name] = YOLO(model_path)
 
-        print(f"Loaded {model_name} (YOLO)")
+        print(f"Loaded {model_name} (YOLO) | Running on {device}")
 
     # =========================================================
     # Swin Classification Models
@@ -103,7 +99,7 @@ def load_recommended_models(final_models, device='cuda'):
         models[model_name] = model
 
         print(
-            f"Loaded {model_name} (Swin) | "
+            f"Loaded {model_name} (Swin) | Running on {device} | "
             f"classes={config['num_classes']} | "
             f"dropout={config['dropout']}"
         )
@@ -165,7 +161,7 @@ CLASSIFIER_TRANSFORM = v2.Compose([
 ])
 
 
-def run_pipeline(image_path, models, class_names, device='cuda', conf_threshold=0.3):
+def run_pipeline(image_path, models, class_names, device='cuda' if cuda.is_available() else 'cpu', conf_threshold=0.3):
     """
     Runs the full pipeline on one uploaded image, using export_quadrants_using_quad_model
     and export_teeth_in_quad_using_enum_model for detection (with all their built-in

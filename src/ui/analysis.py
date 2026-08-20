@@ -22,7 +22,7 @@ import time
 import threading
 import base64
 import io
-
+from torch import cuda
 import pandas as pd
 import streamlit as st
 from PIL import Image
@@ -129,7 +129,7 @@ def _pipeline_worker(image_path, models, class_names, conf_threshold, holder):
     try:
         result, warnings = run_pipeline(
             image_path=image_path, models=models, class_names=class_names,
-            device='cuda', conf_threshold=conf_threshold,
+            device='cuda' if cuda.is_available() else 'cpu', conf_threshold=conf_threshold,
         )
         holder['result'] = result
         holder['warnings'] = warnings
