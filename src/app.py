@@ -7,6 +7,12 @@ model_utils.py / utils.py / vis.py / animation.py (untouched, except one
 CSS bug fix in animation.py - see its top-of-function comment) plus the
 thin integration layer under core/ and storage/.
 """
+from pathlib import Path
+import sys
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 import streamlit as st
 
