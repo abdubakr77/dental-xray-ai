@@ -5,7 +5,7 @@ import shutil
 from tqdm import tqdm
 import cv2
 
-from vis import visualize_augmentation
+from src.vis import visualize_augmentation
 import albumentations as A
 import numpy as np 
 

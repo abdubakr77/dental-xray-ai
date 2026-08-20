@@ -3,7 +3,7 @@ import os
 from torch import utils, float32, load, cuda
 from torch import device as torch_device
 import tempfile, shutil
-from model_utils import predict_classifier, export_quadrants_using_quad_model, export_teeth_in_quad_using_enum_model, build_swin_model
+from src.model_utils import predict_classifier, export_quadrants_using_quad_model, export_teeth_in_quad_using_enum_model, build_swin_model
 from torchvision.transforms import v2
 import pandas as pd
 
