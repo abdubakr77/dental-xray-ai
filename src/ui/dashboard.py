@@ -68,6 +68,26 @@ def render(debug: bool = False):
         by_date = df.groupby('date').size().rename("Analyses")
         st.bar_chart(by_date)
 
+    quadrant_totals = {}
+    for summary in df.get('quadrant_summary', []):
+        if isinstance(summary, dict):
+            for q, counts in summary.items():
+                bucket = quadrant_totals.setdefault(q, {'healthy': 0, 'diseased': 0})
+                bucket['healthy'] += counts.get('healthy', 0)
+                bucket['diseased'] += counts.get('diseased', 0)
+    if quadrant_totals:
+        st.subheader("Quadrant-Level Findings")
+        st.caption("Diseased tooth counts, summed across every saved analysis.")
+        st.bar_chart(pd.DataFrame({
+            q: {'Diseased': c['diseased'], 'Healthy': c['healthy']} for q, c in quadrant_totals.items()
+        }).T)
+
+    confidence_series = df.get('avg_top_confidence', pd.Series(dtype=float)).dropna()
+    if len(confidence_series) >= 2:
+        st.subheader("Confidence Trend")
+        st.caption("Average top disease-classification confidence per analysis, most recent last.")
+        st.line_chart((confidence_series.iloc[::-1] * 100).reset_index(drop=True))
+
     st.subheader("Recent Analyses")
     cols = [c for c in ['report_id', 'date', 'time', 'pipeline_mode', 'total_teeth', 'diseased_teeth']
             if c in df.columns]
