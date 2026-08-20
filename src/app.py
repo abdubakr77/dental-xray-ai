@@ -10,6 +10,29 @@ thin integration layer under core/ and storage/.
 from pathlib import Path
 import sys
 
+
+yaml_content = """
+final_recommended_models:
+  quadrant_model: Runs/Stage 1/weights/last.pt
+  enumeration_model: Runs/Stage 2 Continued/weights/last.pt
+  teeth_status_model: Runs/Stage 3/Healthy & Un-Healthy Classifier/weights/last.pt
+  disease_model: Runs/Stage 3/Disease Classifier/weights/best.pt
+  caries_status_model: Runs/Stage 3/Caries & Deep Caries Classifier/weights/last.pt
+
+  quadrant_nc: 4
+  enumeration_nc: 8
+  teeth_status_nc: 2
+  disease_nc: 3
+  caries_status_nc: 2
+"""
+
+# Let's write this to a file or check it
+with open("configs/trained_models.yaml", "w", encoding="utf-8") as f:
+    f.write(yaml_content)
+
+# print("File generated successfully.")
+
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
