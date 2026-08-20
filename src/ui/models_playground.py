@@ -12,7 +12,10 @@ import cv2
 import streamlit as st
 from PIL import Image
 
-from core.config import CLASS_NAMES, QUADRANT_NAMES, STAGE_INPUT_HELP, DETECTION_CONF_THRESHOLD_DEFAULT
+from core.config import (
+    CLASS_NAMES, QUADRANT_NAMES, STAGE_INPUT_HELP, DETECTION_CONF_THRESHOLD_DEFAULT,
+    TEMP_UPLOADS_DIR,
+)
 from core.model_registry import get_models
 from core.errors import AppError, show_error, validate_image_file
 from core.single_model_runner import (
@@ -74,8 +77,8 @@ def render(debug: bool = False):
         show_error(e, debug=debug)
         return
 
-    tmp_path = os.path.join("temp_uploads", f"playground_{uploaded.name}")
-    os.makedirs("temp_uploads", exist_ok=True)
+    tmp_path = os.path.join(TEMP_UPLOADS_DIR, f"playground_{uploaded.name}")
+    os.makedirs(TEMP_UPLOADS_DIR, exist_ok=True)
     cv2.imwrite(tmp_path, cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
 
     st.divider()
