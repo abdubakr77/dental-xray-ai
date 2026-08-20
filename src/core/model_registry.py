@@ -14,9 +14,9 @@ import yaml
 import streamlit as st
 import torch
 
-from inference_pipeline import load_recommended_models
-from core.config import CONFIG_PATH, DEVICE_PREFERENCE
-from core.errors import AppError
+from src.inference_pipeline import load_recommended_models
+from src.core.config import CONFIG_PATH, DEVICE_PREFERENCE
+from src.core.errors import AppError
 
 
 @st.cache_resource(show_spinner="Loading models (first run only)...")

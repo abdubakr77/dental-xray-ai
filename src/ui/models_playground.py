@@ -12,18 +12,18 @@ import cv2
 import streamlit as st
 from PIL import Image
 
-from core.config import (
+from src.core.config import (
     CLASS_NAMES, QUADRANT_NAMES, STAGE_INPUT_HELP, DETECTION_CONF_THRESHOLD_DEFAULT,
     TEMP_UPLOADS_DIR,
 )
-from core.model_registry import get_models
-from core.errors import AppError, show_error, validate_image_file
-from core.single_model_runner import (
+from src.core.model_registry import get_models
+from src.core.errors import AppError, show_error, validate_image_file
+from src.core.single_model_runner import (
     run_quadrant_only, run_teeth_only, run_healthy_unhealthy_only,
     run_disease_only, run_caries_severity_only,
 )
-from ui.components import probability_bars, metric_row, disclaimer_banner
-from animation import inject_animation_css, render_image_with_overlay
+from src.ui.components import probability_bars, metric_row, disclaimer_banner
+from src.animation import inject_animation_css, render_image_with_overlay
 
 MODEL_OPTIONS = {
     "Quadrant Detection": "quadrant",

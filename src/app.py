@@ -16,8 +16,9 @@ if str(PROJECT_ROOT) not in sys.path:
 
 import streamlit as st
 
-from core.config import APP_TITLE, NAV_PAGES
-from ui import dashboard, analysis, models_playground, reports_page, about, home, help as help_page
+from src.core.config import APP_TITLE, NAV_PAGES
+from src.ui import dashboard, analysis, models_playground, reports_page, about, home, help as help_page
+
 
 st.set_page_config(
     page_title="Dental X-ray AI",

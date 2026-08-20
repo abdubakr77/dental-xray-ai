@@ -12,8 +12,8 @@ import os
 import streamlit as st
 import pandas as pd
 
-from core.model_registry import device_info
-from core.config import CONFIG_PATH
+from src.core.model_registry import device_info
+from src.core.config import CONFIG_PATH
 
 
 def render(debug: bool = False):

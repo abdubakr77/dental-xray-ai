@@ -27,19 +27,19 @@ import pandas as pd
 import streamlit as st
 from PIL import Image
 
-from inference_pipeline import run_pipeline
-from animation import (
+from src.inference_pipeline import run_pipeline
+from src.animation import (
     inject_animation_css, render_image_with_overlay, render_quadrant_card,
     render_tooth_detail_grid, render_completion_card,
 )
-from core.config import (
+from src.core.config import (
     CLASS_NAMES, STAGE_REQUIRED_INPUT, SAMPLE_IMAGES_DIR, QUADRANT_NAMES,
     TEMP_UPLOADS_DIR, DETECTION_CONF_THRESHOLD_DEFAULT,
 )
-from core.model_registry import get_models
-from core.errors import AppError, show_error
-from storage.reports import save_report
-from ui.components import (
+from src.core.model_registry import get_models
+from src.core.errors import AppError, show_error
+from src.storage.reports import save_report
+from src.ui.components import (
     disclaimer_banner, metric_row, find_close_calls, render_uncertainty_notice,
     friendly_warning_summary,
 )

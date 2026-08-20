@@ -16,13 +16,13 @@ import cv2
 import pandas as pd
 from torch import utils as torch_utils
 
-from model_utils import export_quadrants_using_quad_model, export_teeth_in_quad_using_enum_model
-from inference_pipeline import (
+from src.model_utils import export_quadrants_using_quad_model, export_teeth_in_quad_using_enum_model
+from src.inference_pipeline import (
     crop_teeth_from_merged_label, SingleCropDataset, CLASSIFIER_TRANSFORM,
 )
-from model_utils import predict_classifier
-from core.config import QUADRANT_NAMES, DETECTION_CONF_THRESHOLD_DEFAULT
-from core.model_registry import device_info
+from src.model_utils import predict_classifier
+from src.core.config import QUADRANT_NAMES, DETECTION_CONF_THRESHOLD_DEFAULT
+from src.core.model_registry import device_info
 
 
 def _device_str() -> str:

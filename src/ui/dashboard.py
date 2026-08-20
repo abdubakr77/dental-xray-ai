@@ -6,8 +6,8 @@ If there are no reports yet, this says so instead of showing fabricated charts.
 import pandas as pd
 import streamlit as st
 
-from storage.reports import list_reports
-from ui.components import metric_row, disclaimer_banner
+from src.storage.reports import list_reports
+from src.ui.components import metric_row, disclaimer_banner
 
 
 def render(debug: bool = False):

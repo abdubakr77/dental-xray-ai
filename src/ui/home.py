@@ -10,8 +10,8 @@ import os
 import random
 import streamlit as st
 
-from core.config import SAMPLE_IMAGES_DIR, DISCLAIMER
-from animation import inject_animation_css
+from src.core.config import SAMPLE_IMAGES_DIR, DISCLAIMER
+from src.animation import inject_animation_css
 
 PIPELINE_STEPS = [
     ("🩻", "Panoramic X-Ray", "The full mouth image you upload"),

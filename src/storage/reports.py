@@ -30,8 +30,8 @@ from datetime import datetime
 import cv2
 import numpy as np
 
-from vis import draw_infrence_boxes
-from core.config import REPORTS_DIR
+from src.vis import draw_infrence_boxes
+from src.core.config import REPORTS_DIR
 
 
 def _to_native(obj):

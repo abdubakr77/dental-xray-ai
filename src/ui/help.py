@@ -8,8 +8,8 @@ input requirements) so it can't drift out of sync with the actual pipeline.
 
 import streamlit as st
 
-from core.config import CLASS_NAMES, QUADRANT_NAMES, STAGE_INPUT_HELP, DISCLAIMER
-from animation import inject_animation_css
+from src.core.config import CLASS_NAMES, QUADRANT_NAMES, STAGE_INPUT_HELP, DISCLAIMER
+from src.animation import inject_animation_css
 
 
 def render(debug: bool = False):

@@ -8,9 +8,9 @@ open one for a detailed stage-by-stage view plus export.
 
 import streamlit as st
 
-from storage.reports import list_reports, load_report
-from storage.export import report_to_csv_bytes, report_to_json_bytes, report_to_pdf_bytes
-from ui.components import metric_row, probability_bars, disclaimer_banner
+from src.storage.reports import list_reports, load_report
+from src.storage.export import report_to_csv_bytes, report_to_json_bytes, report_to_pdf_bytes
+from src.ui.components import metric_row, probability_bars, disclaimer_banner
 
 
 def render(debug: bool = False):
