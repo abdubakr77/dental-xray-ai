@@ -16,14 +16,58 @@ in five different places.
 import os
 
 # ---------------------------------------------------------------------------
-# Model config - same path convention as the existing app.py.
-# The YAML itself (paths under `final_recommended_models`) was not provided,
-# so it is not fabricated here; this only points at where it lives.
+# Path anchoring.
+#
+# Every path below used to be a plain relative string ("sample_images",
+# "../configs/trained_models.yaml", ...). Relative paths in Python resolve
+# against the process's CURRENT WORKING DIRECTORY at the moment it was
+# launched - NOT against wherever app.py itself lives on disk. That only
+# happens to work if you `cd` into the exact folder the author had in mind
+# before running `streamlit run app.py`; run it from anywhere else (e.g.
+# from the project root instead of from src/) and paths like
+# SAMPLE_IMAGES_DIR silently resolve to a folder that doesn't exist, so
+# nothing shows up and no error is raised either.
+#
+# Anchoring to this file's own location makes every path below correct
+# regardless of which directory `streamlit run` was invoked from.
+#
+# Layout assumed (matches the project structure this app ships in):
+#   <PROJECT_ROOT>/
+#       configs/trained_models.yaml
+#       src/                    <- _SRC_DIR (this file's parent's parent)
+#           core/config.py      <- this file
+#           sample_images/
+#           reports/
+#           temp_uploads/
+#           app.py
+# If your own layout differs, override with the env vars below rather than
+# editing these constants.
 # ---------------------------------------------------------------------------
-CONFIG_PATH = os.environ.get("DENTAL_AI_MODEL_CONFIG", "../configs/trained_models.yaml")
+_SRC_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_PROJECT_ROOT = os.path.dirname(_SRC_DIR)
+
+# ---------------------------------------------------------------------------
+# Model config - same path convention as the existing app.py, just anchored
+# absolutely instead of left relative to an assumed working directory.
+# The YAML itself (paths under `final_recommended_models`) was not provided,
+# so its contents are not fabricated here; this only points at where it lives.
+# ---------------------------------------------------------------------------
+CONFIG_PATH = os.environ.get(
+    "DENTAL_AI_MODEL_CONFIG",
+    os.path.join(_PROJECT_ROOT, "configs", "trained_models.yaml")
+)
 DEVICE_PREFERENCE = "cuda"  # existing load_recommended_models() falls back to cpu internally
 
-SAMPLE_IMAGES_DIR = "../sample_images"
+SAMPLE_IMAGES_DIR = os.path.join(_SRC_DIR, "sample_images")
+
+# NOTE: the model paths INSIDE trained_models.yaml (quadrant_model: ../Runs/...)
+# are still read and used as-is by the existing load_recommended_models() /
+# YOLO() / torch.load() calls in inference_pipeline.py and model_utils.py,
+# which were not modified - those stay relative to the CURRENT WORKING
+# DIRECTORY the app was launched from (that part of the pipeline is
+# untouched, by design). For those to resolve, run streamlit from inside
+# src/ (`cd src && streamlit run app.py`), matching the working directory
+# the YAML's own relative paths were written against.
 
 # ---------------------------------------------------------------------------
 # Class names - copied unchanged from the existing app.py. These must stay in
@@ -87,8 +131,8 @@ DETECTION_CONF_THRESHOLD_DEFAULT = 0.3
 # App-level settings (new - not part of the ML pipeline).
 # ---------------------------------------------------------------------------
 APP_TITLE = "Dental AI - Panoramic X-Ray Intelligence System"
-REPORTS_DIR = os.environ.get("DENTAL_AI_REPORTS_DIR", "reports")
-TEMP_UPLOADS_DIR = "temp_uploads"
+REPORTS_DIR = os.environ.get("DENTAL_AI_REPORTS_DIR", os.path.join(_SRC_DIR, "reports"))
+TEMP_UPLOADS_DIR = os.path.join(_SRC_DIR, "temp_uploads")
 
 DISCLAIMER = (
     "AI-generated results are for research / decision-support purposes only "
@@ -96,4 +140,4 @@ DISCLAIMER = (
     "must be confirmed by a qualified dentist."
 )
 
-NAV_PAGES = ["Dashboard", "Analysis", "Individual Models", "Reports / History", "About"]
+NAV_PAGES = ["Home", "Dashboard", "Analysis", "Individual Models", "Reports / History", "Help", "About"]
