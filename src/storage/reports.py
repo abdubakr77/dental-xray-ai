@@ -25,7 +25,6 @@ Design notes:
 import os
 import json
 import uuid
-import shutil
 from datetime import datetime
 
 import cv2
@@ -100,6 +99,18 @@ def save_report(result: dict, warnings: list, stage: str, image_path: str,
         name = t.get('caries_severity') or t.get('disease', 'Unknown')
         disease_counts[name] = disease_counts.get(name, 0) + 1
 
+    quadrant_summary = {}
+    for t in all_teeth:
+        q = t.get('quad_key', 'unknown').split('_')[-1]
+        bucket = quadrant_summary.setdefault(q, {'healthy': 0, 'diseased': 0})
+        if t.get('status') == 'Disease Found':
+            bucket['diseased'] += 1
+        else:
+            bucket['healthy'] += 1
+
+    top_confidences = [max(t['disease_probs'].values()) for t in diseased if t.get('disease_probs')]
+    avg_top_confidence = round(sum(top_confidences) / len(top_confidences), 4) if top_confidences else None
+
     metadata = {
         "report_id": report_id,
         "date": datetime.now().strftime("%Y-%m-%d"),
@@ -115,6 +126,8 @@ def save_report(result: dict, warnings: list, stage: str, image_path: str,
         "healthy_teeth": len(all_teeth) - len(diseased),
         "diseased_teeth": len(diseased),
         "disease_counts": disease_counts,
+        "quadrant_summary": quadrant_summary,
+        "avg_top_confidence": avg_top_confidence,
         "has_annotated_image": has_final_view,
     }
 
