@@ -14,6 +14,7 @@ in five different places.
 """
 
 import os
+from torch import cuda
 
 # ---------------------------------------------------------------------------
 # Path anchoring.
@@ -56,7 +57,7 @@ CONFIG_PATH = os.environ.get(
     "DENTAL_AI_MODEL_CONFIG",
     os.path.join(_PROJECT_ROOT, "configs", "trained_models.yaml")
 )
-DEVICE_PREFERENCE = "cuda"  # existing load_recommended_models() falls back to cpu internally
+DEVICE_PREFERENCE = 'cuda' if cuda.is_available() else 'cpu'  # existing load_recommended_models() falls back to cpu internally
 
 SAMPLE_IMAGES_DIR = os.path.join(_SRC_DIR, "sample_images")
 
