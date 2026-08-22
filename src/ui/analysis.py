@@ -494,16 +494,12 @@ def render(debug: bool = False):
         image_path, run_clicked, stop_clicked, reset_clicked = render_sidebar_controls(debug)
 
     if run_clicked:
-        # Deliberately NOT calling _reset_run() here: the previous analysis
-        # (if any) should stay fully visible, unchanged, for the whole time
-        # the new one is processing - it only gets replaced the instant the
-        # new result is actually ready (see the swap below), not the moment
-        # Run is clicked.
+        # Clear the previous analysis immediately - it should not stay on
+        # screen while a new run is processing. Only image selection state
+        # survives the reset (set right after).
+        _reset_run()
         st.session_state.selected_image_path = image_path
         st.session_state.running = True
-        st.session_state.stop_requested = False
-        st.session_state.pipeline_thread = None
-        st.session_state.pipeline_holder = None
         st.rerun()
     if stop_clicked:
         st.session_state.stop_requested = True
@@ -525,6 +521,7 @@ def render(debug: bool = False):
     st.divider()
 
     needs_poll_rerun = False
+    status_slot = st.empty()
 
     # ---- run the real pipeline once, off the main thread so Stop is responsive ----
     if st.session_state.running and not st.session_state.stop_requested:
@@ -545,10 +542,8 @@ def render(debug: bool = False):
 
             holder = st.session_state.pipeline_holder
             elapsed = time.time() - (st.session_state.run_started_at or time.time())
-            st.info(f"⏳ Running a new analysis... ({elapsed:.0f}s elapsed) - quadrants → teeth → "
-                    f"health → disease → severity, in one pass. Click **Stop** in the sidebar to cancel.")
-            if st.session_state.result is not None:
-                st.caption("The previous analysis below stays as-is until this one finishes.")
+            status_slot.info(f"⏳ Running a new analysis... ({elapsed:.0f}s elapsed) - quadrants → teeth → "
+                              f"health → disease → severity, in one pass. Click **Stop** in the sidebar to cancel.")
 
             if not holder['done']:
                 needs_poll_rerun = True
@@ -558,11 +553,9 @@ def render(debug: bool = False):
                 st.session_state.pipeline_holder = None
                 show_error(holder['error'], debug=debug)
             else:
-                # The new result is ready - THIS is the one moment the old
-                # analysis (if any) actually gets replaced, quietly: the new
-                # panoramic block's own entrance fade (see _render_panoramic_
-                # block / .overlay-container's settleIn animation) is what
-                # makes the swap read as easing in rather than a hard cut.
+                # The old result was already cleared the moment Run was
+                # clicked (see run_clicked above) - this is just where the
+                # newly finished result becomes available to render.
                 st.session_state.result = holder['result']
                 st.session_state.warnings = holder['warnings'] or []
                 steps, idx = _build_reveal_sequence(st.session_state.result)
@@ -609,15 +602,37 @@ def render(debug: bool = False):
 
         _render_panoramic_block(result, pointer, idx)
 
+        # Explicit placeholders for the three sections that only appear once
+        # the pointer has advanced far enough. This page keeps interrupting
+        # itself with st.rerun() while animating and never reaches a normal
+        # end-of-script, which is exactly the situation where Streamlit can
+        # leave stale elements behind from a longer previous run if a
+        # shorter later run simply never calls st.markdown/st.columns for
+        # that section at all. Writing an explicit .empty() when there's
+        # nothing to show yet - instead of just not calling anything -
+        # means every render positively states what belongs in that slot.
+        quadrant_slot = st.empty()
         if pointer > idx.get('quadrant_box_wave_end', -1):
-            _render_quadrant_cards_block(result, pointer, idx)
+            with quadrant_slot.container():
+                _render_quadrant_cards_block(result, pointer, idx)
+        else:
+            quadrant_slot.empty()
 
+        tooth_slot = st.empty()
         if pointer > idx.get('quad_wave_end', -1):
-            _render_tooth_cards_block(result, pointer, idx)
+            with tooth_slot.container():
+                _render_tooth_cards_block(result, pointer, idx)
+        else:
+            tooth_slot.empty()
 
+        summary_slot = st.empty()
         if pointer >= len(steps):
-            _render_final_summary_block(result, st.session_state.warnings, debug)
-        elif not st.session_state.running:
+            with summary_slot.container():
+                _render_final_summary_block(result, st.session_state.warnings, debug)
+        else:
+            summary_slot.empty()
+
+        if pointer < len(steps) and not st.session_state.running:
             # Only auto-advance the reveal animation when there's no new run
             # in progress - if one is, the poll loop below drives reruns
             # instead, and we don't want two independent sources of rerun.
