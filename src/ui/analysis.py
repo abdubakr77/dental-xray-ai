@@ -55,7 +55,7 @@ _DEFAULTS = {
 
 STEP_DELAYS = {
     'scan_start': 0.4, 'quadrant_box': 0.18, 'quadrant_active_all': 0.15,
-    'tooth_round': 0.12, 'health_round': 0.1, 'disease_round': 0.35, 'severity_round': 0.35,
+    'tooth_round': 0.12, 'health_round': 0.1, 'diagnosis_reveal': 0.5,
 }
 
 
@@ -147,7 +147,7 @@ def _build_reveal_sequence(result: dict):
     quad_names = _sorted_quad_names(list(result.get('quadrant_images', {}).keys()))
     steps = []
     idx = {'quadrant_box': {}, 'quadrant_active': {}, 'quadrant_done': {},
-           'tooth_box': {}, 'health': {}, 'disease': {}, 'severity': {}}
+           'tooth_box': {}, 'health': {}, 'diagnosis': {}}
 
     # A genuine "nothing shown yet, AI is looking at the image" frame before
     # the first quadrant box appears - without this, the very first render
@@ -212,33 +212,23 @@ def _build_reveal_sequence(result: dict):
             steps.append({'type': 'health_round', 'round': round_i})
     idx['health_wave_end'] = len(steps) - 1 if all_teeth else idx['quad_wave_end']
 
-    for round_i in range(max_teeth):
-        round_step = len(steps)
-        any_this_round = False
-        for q in quad_names:
-            teeth = per_quad_teeth[q]
-            if round_i < len(teeth) and teeth[round_i].get('disease'):
-                t_i = idx['tooth_i_by_identity'].get(id(teeth[round_i]))
-                if t_i is not None:
-                    idx['disease'][t_i] = round_step
-                    any_this_round = True
-        if any_this_round:
-            steps.append({'type': 'disease_round', 'round': round_i})
-    idx['disease_wave_end'] = len(steps) - 1 if idx['disease'] else idx['health_wave_end']
-
-    for round_i in range(max_teeth):
-        round_step = len(steps)
-        any_this_round = False
-        for q in quad_names:
-            teeth = per_quad_teeth[q]
-            if round_i < len(teeth) and teeth[round_i].get('caries_severity'):
-                t_i = idx['tooth_i_by_identity'].get(id(teeth[round_i]))
-                if t_i is not None:
-                    idx['severity'][t_i] = round_step
-                    any_this_round = True
-        if any_this_round:
-            steps.append({'type': 'severity_round', 'round': round_i})
-    idx['severity_wave_end'] = len(steps) - 1 if idx['severity'] else idx['disease_wave_end']
+    # ONE single step, shared by every unhealthy tooth in the whole image -
+    # not round-by-round, not one tooth then the next. The value stored is
+    # already the FINAL diagnosis (severity substituted for disease where it
+    # applies), so a caries tooth goes straight from "Unhealthy" to "Deep
+    # Caries" in one shot - it never displays "Caries" as an intermediate
+    # answer that then changes to something else a moment later.
+    diagnosis_step = len(steps)
+    has_diagnosis = False
+    for t in all_teeth:
+        if t.get('disease'):
+            t_i = idx['tooth_i_by_identity'].get(id(t))
+            if t_i is not None:
+                idx['diagnosis'][t_i] = diagnosis_step
+                has_diagnosis = True
+    if has_diagnosis:
+        steps.append({'type': 'diagnosis_reveal'})
+    idx['diagnosis_wave_end'] = len(steps) - 1 if has_diagnosis else idx['health_wave_end']
 
     return steps, idx
 
@@ -253,18 +243,13 @@ def _tooth_card_state(tooth: dict, tooth_i: int, pointer: int, idx: dict):
     if tooth.get('status') == 'Healthy':
         return 'healthy', '✓ Healthy', '', pointer == health_i, False
 
-    disease_i = idx['disease'].get(tooth_i)
-    if disease_i is None or pointer < disease_i:
-        return 'unhealthy', '⚠ Unhealthy', 'Checking disease type...', pointer == health_i, True
+    diag_i = idx['diagnosis'].get(tooth_i)
+    if diag_i is None or pointer < diag_i:
+        return 'unhealthy', '⚠ Unhealthy', '', pointer == health_i, False
 
-    disease_name = tooth.get('disease', 'Unknown')
-    severity_i = idx['severity'].get(tooth_i)
-    if severity_i is not None:
-        if pointer < severity_i:
-            return 'disease', disease_name, 'Checking severity...', pointer == disease_i, True
-        return ('disease', tooth.get('caries_severity', disease_name), f"({disease_name})",
-                pointer == severity_i, False)
-    return 'disease', disease_name, '', pointer == disease_i, False
+    final_name = tooth.get('caries_severity') or tooth.get('disease', 'Unknown')
+    sub_text = f"({tooth['disease']})" if tooth.get('caries_severity') else ''
+    return 'disease', final_name, sub_text, pointer == diag_i, False
 
 
 # ---------------------------------------------------------------------------
@@ -586,6 +571,11 @@ def render(debug: bool = False):
                 st.session_state.reveal_pointer = 0
                 st.session_state.running = False
                 st.session_state.pipeline_thread = None
+                # Clear BEFORE attempting the new save (not only after it
+                # succeeds) - otherwise a failed save on this run would
+                # leave the PREVIOUS run's report ID showing in the final
+                # summary card as if it belonged to this analysis.
+                st.session_state.last_report_id = None
 
                 duration = time.time() - (st.session_state.run_started_at or time.time())
                 try:
