@@ -362,6 +362,21 @@ ANIMATION_CSS = """
     box-shadow: 0 0 12px rgba(244, 67, 54, 0.2);
 }
 .tooth-detail-card.disease .tooth-status { color: #ff5252; }
+
+/* The "unhealthy -> diagnosed" shift: plays ONCE, exactly on the render
+   where a card's diagnosis just resolved (state is now 'disease' AND
+   status-entering is set) - starts from the unhealthy card's own amber
+   colors and eases into the disease card's red ones, so the transition
+   itself is visible rather than the card just appearing already red. */
+@keyframes unhealthyToDiagnosed {
+    0%   { border-color: rgba(255, 152, 0, 0.5); background: rgba(255, 152, 0, 0.06); box-shadow: none; }
+    100% { border-color: rgba(244, 67, 54, 0.55); background: rgba(244, 67, 54, 0.07);
+           box-shadow: 0 0 12px rgba(244, 67, 54, 0.2); }
+}
+.tooth-detail-card.disease.status-entering {
+    animation: unhealthyToDiagnosed 0.6s ease-out forwards;
+}
+
 .tooth-detail-card .tooth-sub {
     font-size: 0.6rem;
     opacity: 0.7;
@@ -600,10 +615,11 @@ def render_quadrant_card(title, image_base64, image_width, image_height, boxes,
 def _tooth_detail_card_html(tooth_id, image_base64, state="neutral", status_text="", sub_text="",
                              card_entering=False, status_entering=False, checking=False):
     card_appear_class = "card-entering" if card_entering else "card-settled"
+    outer_change_class = "status-entering" if status_entering else ""
     status_class = "status-entering" if status_entering else ""
     sub_class = ("status-entering" if status_entering else "") + (" checking" if checking else "")
     return f'''
-        <div class="tooth-detail-card {state} {card_appear_class}">
+        <div class="tooth-detail-card {state} {card_appear_class} {outer_change_class}">
             <img src="data:image/png;base64,{image_base64}" />
             <div class="tooth-id">#{tooth_id}</div>
             {f'<div class="tooth-status {status_class}">{status_text}</div>' if status_text else ''}
