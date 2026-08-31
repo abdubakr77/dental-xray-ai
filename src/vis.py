@@ -38,71 +38,161 @@ def draw_corner_box(img, x1, y1, x2, y2, label_name, confidence, color, length, 
         cv2.rectangle(img, (x1, y1 - th - 15), (x1 + tw + 10, y1), color, -1)
         cv2.putText(img, text, (x1 + 5, y1 - 8), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 0), 2)
 
-def show_image_boxes(df,images_path,target:list = None):
+def show_image(
+    df,
+    images_path,
+    target=None,
+    draw_mask=False,
+    draw_box=True,
+    mask_opacity=0.3
+):
+    import matplotlib
+    # Select image
     if target and len(target) == 2:
         rows = df[df[target[0]] == target[1]]
-        length = len(rows)
-        row = rows.iloc[np.random.randint(low=0,high=length)]
+
+        if len(rows) == 0:
+            raise ValueError(f"No data found for {target[0]} = {target[1]}")
+
+        row = rows.iloc[np.random.randint(len(rows))]
         fname = row['File_Name']
         data = rows[rows['File_Name'] == fname]
+
     elif target is None:
-        row = df.iloc[np.random.randint(0,len(df))]
+        row = df.iloc[np.random.randint(len(df))]
         fname = row['File_Name']
         data = df[df['File_Name'] == fname]
+
     else:
-        raise IndexError(f"Index out of range! Must be only 2. Got {len(target)}")
-    
+        raise IndexError(
+            f"Index out of range! Must be only 2. Got {len(target)}"
+        )
 
-    img = plt.imread(os.path.join(images_path, fname))
-    fig, ax = plt.subplots(1, figsize=(15, 8))
-    ax.imshow(img, cmap="gray")
+    # Read image
+    image = cv2.imread(os.path.join(images_path, fname))
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
+    # Plot
+    fig, ax = plt.subplots(figsize=(15, 15))
+
+
+    # Disease colors
+    disease_colors = {
+        'caries': 'red',
+        'deep_caries': 'orange',
+        'periapical': 'blue',
+        'impacted': 'purple'
+    }
+
+    # Draw annotations
     for _, row in data.iterrows():
-        x, y, w, h = list(row['Bbox'])
-        img_h, img_w = img.shape[:2]
-        if max(x, y, w, h) <= 1.0:
-            x = x * img_w
-            y = y * img_h
-            w = w * img_w
-            h = h * img_h
 
         color = 'red'
 
         if 'Disease_Name' in df.columns:
+            color = disease_colors.get(
+                row['Disease_Name'],
+                'gray'
+            )
 
-            disease_colors = {
-                'caries': 'red',
-                'deep_caries': 'orange',
-                'periapical': 'blue',
-                'impacted': 'purple'
-            }
-
-            disease = row['Disease_Name']
-            color = disease_colors.get(disease, 'gray')
-
-            legend_elements = [patches.Patch(facecolor='none', edgecolor=c, label=d) 
-                                for d, c in disease_colors.items()]
-            ax.legend(handles=legend_elements, loc='upper right')
-
-        
-        rect = patches.Rectangle((x, y), w, h, linewidth=1.5, edgecolor=color, facecolor='none')
-        ax.add_patch(rect)
-
-        quad = row['Quad']
-        
-        label = f'{quad}'
+        # Label
+        label = str(row['Quad'])
 
         if 'Enumeration' in df.columns:
-            tooth_num = row['Enumeration']
+            label += f" | {row['Enumeration']}"
 
-            label = f'{quad} | {tooth_num}'
+        # Mask
+        if draw_mask:
 
+            points = np.array(row.iloc[5]).reshape(-1, 2)
 
-        ax.text(x, y - 5, label, color=color, fontsize=9,
-                bbox=dict(facecolor='black', alpha=0.5, pad=0.5))
+            mask = np.zeros(image.shape[:2], dtype=np.uint8)
+            cv2.fillPoly(mask, [points], 255)
 
+            rgb = np.array(
+                matplotlib.colors.to_rgb(color)
+            ) * 255
 
-    ax.set_title(fname)
+            image[mask == 255] = (
+                image[mask == 255] * (1 - mask_opacity)
+                + rgb * mask_opacity
+            ).astype(np.uint8)
+
+            xmin = int(points[:, 0].min())
+            ymin = int(points[:, 1].min())
+            xmax = int(points[:, 0].max())
+            ymax = int(points[:, 1].max())
+
+        # Box
+        else:
+
+            x, y, w, h = list(row['Bbox'])
+
+            img_h, img_w = image.shape[:2]
+
+            if max(x, y, w, h) <= 1.0:
+                x *= img_w
+                y *= img_h
+                w *= img_w
+                h *= img_h
+
+            xmin = int(x)
+            ymin = int(y)
+            xmax = int(x + w)
+            ymax = int(y + h)
+
+        # Box
+        if draw_box:
+
+            rect = patches.Rectangle(
+                (xmin, ymin),
+                xmax - xmin,
+                ymax - ymin,
+                linewidth=2,
+                edgecolor=color,
+                facecolor='none'
+            )
+
+            ax.add_patch(rect)
+
+        # Label
+        ax.text(
+            xmin,
+            max(ymin - 5, 10),
+            label,
+            color=color,
+            fontsize=9,
+            bbox=dict(
+                facecolor='black',
+                alpha=0.5,
+                pad=0.5
+            )
+        )
+        
+    ax.imshow(image)
+    # Legend
+    if 'Disease_Name' in df.columns:
+
+        legend_elements = [
+            patches.Patch(
+                facecolor='none',
+                edgecolor=color,
+                label=disease
+            )
+            for disease, color in disease_colors.items()
+        ]
+
+        ax.legend(
+            handles=legend_elements,
+            loc='upper right'
+        )
+
+    ax.set_title(
+        f"{fname.split('.')[0]} | Label Counts: {len(data)}"
+    )
+
+    ax.axis("off")
+    plt.show()
 
 def visualize_augmentation(images, bboxes_list=None, class_labels_list=None, titles=None):
     n = len(images)
