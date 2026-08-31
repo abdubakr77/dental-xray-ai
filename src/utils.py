@@ -72,8 +72,11 @@ def find_duplicate_boxes(df, target_col, iou_threshold=0.9):
         
         for i in range(n):
             for j in range(i+1, n):
-                box1 = rows.iloc[i]['Bbox']
-                box2 = rows.iloc[j]['Bbox']
+                cx, cy, w, h, = rows.iloc[i]['Bbox']
+                box1 = _xywh_norm_to_xyxy_px(cx, cy, w, h,rows.iloc[i]['Width'], rows.iloc[i]['Height'])
+                cx, cy, w, h, = rows.iloc[j]['Bbox']
+                box2 = _xywh_norm_to_xyxy_px(cx, cy, w, h,rows.iloc[j]['Width'], rows.iloc[j]['Height'])
+                
                 iou = _iou_xyxy(box1, box2)
                 text = f'{rows.iloc[i][target_col]} {rows.iloc[j][target_col]}'
                 sorted_text = sorted(text.split())
